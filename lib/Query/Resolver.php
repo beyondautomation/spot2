@@ -103,10 +103,22 @@ class Resolver
         $schema = new \Doctrine\DBAL\Schema\Schema();
         $table = $schema->createTable($this->escapeIdentifier($table));
 
-        foreach ($fields as $field) {
+        $valid = array('name', 'type', 'default', 'notnull', 'length', 'precision', 'scale', 'fixed', 'unsigned', 'autoincrement', 'columnDefinition', 'comment');
+        
+        foreach ($fields as $index => $field) {
             $fieldType = $field['type'];
             unset($field['type']);
-            $table->addColumn($this->escapeIdentifier($field['column']), $fieldType, $field);
+            
+            $column = $field['column'];
+            unset($field['column']);
+            
+            foreach ($field as $field_index => $field_value) {
+                if (!in_array($field_index, $valid)) {
+                    unset($field[$field_index]);
+                }
+            }
+
+            $table->addColumn($this->escapeIdentifier($column), $fieldType, $field);
         }
 
         // PRIMARY

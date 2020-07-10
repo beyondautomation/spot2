@@ -2,7 +2,7 @@ Spot DataMapper ORM v2.0 [![Build Status](https://travis-ci.org/spotorm/spot2.sv
 ========================
 Spot v2.x is built on the [Doctrine
 DBAL](http://www.doctrine-project.org/projects/dbal.html), and targets PHP
-5.4+.
+7.2+.
 
 The aim of Spot is to be a lightweight DataMapper alternative that is clear,
 efficient, and simple - and doesn't use annotations or proxy classes.

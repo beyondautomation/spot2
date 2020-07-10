@@ -17,7 +17,7 @@ Installation with Composer
 --------------------------
 
 ```bash
-composer require vlucas/spot2
+composer require beyondautomation/spot2
 ```
 
 

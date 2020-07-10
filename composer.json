@@ -1,9 +1,9 @@
 {
-    "name": "vlucas/spot2",
+    "name": "beyondautomation/spot2",
     "type": "library",
     "description": "Simple DataMapper built on top of Doctrine DBAL",
     "keywords": ["orm", "datamapper", "dbal", "doctrine", "database", "model", "mapper", "entity"],
-    "homepage": "https://github.com/vlucas/spot2",
+    "homepage": "https://github.com/beyondautomation/spot2",
     "license" : "BSD",
     "authors" : [
         {

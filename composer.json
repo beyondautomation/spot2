@@ -13,9 +13,9 @@
         }
     ],
     "require": {
-        "php": "^7.4 || ^8.0",
+        "php": "^7.3 || ^8.0",
         "vlucas/valitron": "^1.4.10",
-        "doctrine/dbal": "^3.3.4",
+        "doctrine/dbal": "3.3.4",
         "sabre/event": "^5.1.4"
     },
     "require-dev": {

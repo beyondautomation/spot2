@@ -15,7 +15,7 @@
     "require": {
         "php": ">= 8.1.6",
         "vlucas/valitron": "^1.4.11",
-        "doctrine/dbal": "^3.5.1",
+        "doctrine/dbal": "^2.13.8",
         "sabre/event": "^6.0.0"
     },
     "require-dev": {

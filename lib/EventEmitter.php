@@ -6,5 +6,5 @@ namespace Spot;
  */
 class EventEmitter
 {
-    use \Sabre\Event\EmitterTrait;
+    use \Sabre\Event\EventEmitterTrait;
 }

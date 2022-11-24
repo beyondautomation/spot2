@@ -40,6 +40,11 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      */
     protected $_objectId;
 
+	/**
+     * @var array
+     */
+    protected $_data_org = [];
+
     /**
      * @var array
      */
@@ -95,6 +100,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
 
         // Set given data
         if ($data) {
+			$this->_data_org = $data;
             $this->data($data, false);
         }
     }
@@ -264,6 +270,27 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     public function dataExcept(array $except)
     {
         return array_diff_key($this->data(), array_flip($except));
+    }
+
+	/**
+     * Gets original data that has been modified since object construct,
+     *
+     * @return array
+     */
+    public function dataOriginalModified()
+    {
+        $data = array();
+        $data_org = $this->_data_org;
+        $data_mod = $this->_dataModified;
+        if (!empty($data_org)) {
+            foreach ($data_org as $field => $value) {
+                if (isset($data_mod[$field]) && $data_mod[$field] != $value) {
+                    $data[$field] = $data_mod[$field];
+                }
+            }
+        }
+
+        return $data;
     }
 
     /**

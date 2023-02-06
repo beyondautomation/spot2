@@ -936,7 +936,6 @@ class Mapper implements MapperInterface
      */
     public function saveBelongsToRelations(EntityInterface $entity, array $options = [])
     {
-
         $relations = $entity->relations($this, $entity);
 
         $lastResult = false;
@@ -963,6 +962,9 @@ class Mapper implements MapperInterface
         if (is_object($conditions)) {
             $conditions = [$this->primaryKeyField() => $this->primaryKey($conditions)];
         } elseif (is_array($conditions)) {
+			if (isset($conditions['id'])) {
+                $entityOrArray = $this->first([$this->primaryKeyField() => $conditions['id']]);
+            }
             $beforeEvent = 'beforeDeleteConditions';
             $afterEvent = 'afterDeleteConditions';
         }

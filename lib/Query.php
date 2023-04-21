@@ -530,10 +530,12 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      */
     public function limit($limit, $offset = null)
     {
-        $this->builder()->setMaxResults($limit);
-        if ($offset !== null) {
-            $this->offset($offset);
-        }
+		if ($limit > 0) {
+			$this->builder()->setMaxResults($limit);
+			if ($offset !== null) {
+				$this->offset($offset);
+			}
+		}
 
         return $this;
     }

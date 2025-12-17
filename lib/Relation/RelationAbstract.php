@@ -122,8 +122,9 @@ abstract class RelationAbstract
 
         // Set relation collections back on each entity object
         foreach ($collection as $entity) {
-            if (isset($entityRelations[$entity->$relationEntityKey])) {
-                $entity->relation($relationName, $entityRelations[$entity->$relationEntityKey]);
+            $key = $entity->$relationEntityKey !== null ? $entity->$relationEntityKey : '';
+            if (isset($entityRelations[$key])) {
+                $entity->relation($relationName, $entityRelations[$key]);
             } else {
                 $entity->relation($relationName, false);
             }

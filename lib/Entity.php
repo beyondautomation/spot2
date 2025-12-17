@@ -334,7 +334,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     public function isNew($new = null)
     {
         if ($new !== null) {
-            $this->_isNew = (boolean) $new;
+            $this->_isNew = (bool) $new;
         }
 
         return $this->_isNew;

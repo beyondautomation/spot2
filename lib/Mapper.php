@@ -775,7 +775,7 @@ class Mapper implements MapperInterface
             }
 
             // Update primary key on entity object
-            $entity->$pkField = ($pkFieldInfo['type'] === "integer") ? (integer) $result : $result;
+            $entity->$pkField = ($pkFieldInfo['type'] === "integer") ? (int) $result : $result;
             $entity->isNew(false);
             $entity->data($entity->data(null, true, false), false);
 

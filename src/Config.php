@@ -58,13 +58,13 @@ class Config
      * @param array<string, mixed>|string $dsn Data Source Name to be parsed
      *
      * @return array<string, mixed>|false an associative array with the following keys:
-     *                     + adapter:  Database backend used in PHP (mysql, odbc etc.)
-     *                     + dbsyntax: Database used with regards to SQL syntax etc.
-     *                     + protocol: Communication protocol to use (tcp, unix etc.)
-     *                     + host: Host specification (hostname[:port])
-     *                     + dbname: Database to use on the DBMS server
-     *                     + user: User name for login
-     *                     + password: Password for login
+     *                                    + adapter:  Database backend used in PHP (mysql, odbc etc.)
+     *                                    + dbsyntax: Database used with regards to SQL syntax etc.
+     *                                    + protocol: Communication protocol to use (tcp, unix etc.)
+     *                                    + host: Host specification (hostname[:port])
+     *                                    + dbname: Database to use on the DBMS server
+     *                                    + user: User name for login
+     *                                    + password: Password for login
      */
     public static function parseDsn(array|string $dsn): array|false
     {
@@ -231,9 +231,9 @@ class Config
     /**
      * Add database connection
      *
-     * @param string                       $name    Unique name for the connection
-     * @param DBAL\Connection|array<string, mixed>|string $dsn DSN string, params array, or existing Connection
-     * @param bool                         $default Use this connection as the default?
+     * @param string                                      $name    Unique name for the connection
+     * @param DBAL\Connection|array<string, mixed>|string $dsn     DSN string, params array, or existing Connection
+     * @param bool                                        $default Use this connection as the default?
      *
      * @throws Exception
      */

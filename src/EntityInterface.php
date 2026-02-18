@@ -42,7 +42,8 @@ interface EntityInterface
     /**
      * Datasource options getter/setter.
      *
-     * @param  array<string, mixed>|null $tableOpts
+     * @param array<string, mixed>|null $tableOpts
+     *
      * @return array<string, mixed>
      */
     public static function tableOptions(?array $tableOpts = null): array;
@@ -81,7 +82,8 @@ interface EntityInterface
     /**
      * Gets and sets data on the current entity.
      *
-     * @param  array<string, mixed>|null $data
+     * @param array<string, mixed>|null $data
+     *
      * @return static|array<string, mixed>|null
      */
     public function data(?array $data = null, bool $modified = true, bool $loadRelations = true): static|array|null;
@@ -89,7 +91,8 @@ interface EntityInterface
     /**
      * Return array of field data with data from the field names listed removed.
      *
-     * @param  array<string>       $except
+     * @param array<string> $except
+     *
      * @return array<string, mixed>
      */
     public function dataExcept(array $except): array;
@@ -133,7 +136,8 @@ interface EntityInterface
     /**
      * Error message getter/setter.
      *
-     * @param  string|array<string, array<string>>|null $msgs
+     * @param string|array<string, array<string>>|null $msgs
+     *
      * @return array<string, array<string>>|array<string>
      */
     public function errors(mixed $msgs = null, bool $overwrite = true): array;

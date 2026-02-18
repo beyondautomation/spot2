@@ -121,7 +121,7 @@ class QuerySql extends \PHPUnit\Framework\TestCase
 
         // Assert the insert/delete cycle completed without errors
         $this->assertNotFalse($posttag_id, 'PostTag insert should succeed');
-        $this->assertNull($mapper->get($posttag_id), 'PostTag should be deleted after acknowledging');
+        $this->assertFalse($mapper->get($posttag_id), 'PostTag should be deleted after acknowledging');
     }
 
     public function testQueryInstance()

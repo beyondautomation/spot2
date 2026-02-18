@@ -628,7 +628,6 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      * Quote an identifier (column/table name) or an array of identifiers.
      *
      * @param string|array<string> $identifier
-     *
      * @return ($identifier is array ? array<string> : string)
      */
     public function escapeIdentifier(string|array $identifier): string|array

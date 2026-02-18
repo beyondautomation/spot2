@@ -153,8 +153,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     /**
      * Datasource options getter/setter.
      *
-     * @param array<string, mixed>|null $tableOpts
-     *
+     * @param  array<string, mixed>|null $tableOpts
      * @return array<string, mixed>
      */
     public static function tableOptions(?array $tableOpts = null): array
@@ -217,8 +216,9 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     /**
      * Gets and sets data on the current entity.
      *
-     * @param array<string, mixed>|null $data
-     *
+     * @param  array<string, mixed>|null $data
+     * @param  bool                      $modified
+     * @param  bool                      $loadRelations
      * @return $this|array<string, mixed>|null
      */
     public function data(?array $data = null, bool $modified = true, bool $loadRelations = true): static|array|null
@@ -261,8 +261,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     /**
      * Return array of field data with data from the field names listed removed.
      *
-     * @param array<string> $except List of field names to exclude.
-     *
+     * @param  array<string>       $except List of field names to exclude.
      * @return array<string, mixed>
      */
     public function dataExcept(array $except): array
@@ -394,8 +393,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      * - Array:   set errors (replaces or merges depending on $overwrite).
      * - null:    return all errors.
      *
-     * @param string|array<string, array<string>>|null $msgs
-     *
+     * @param  string|array<string, array<string>>|null $msgs
      * @return array<string, array<string>>|array<string>
      */
     public function errors(mixed $msgs = null, bool $overwrite = true): array

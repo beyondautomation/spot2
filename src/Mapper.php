@@ -228,10 +228,6 @@ class Mapper implements MapperInterface
         if (count($this->entityManager()->fields()) > 0) {
             $this->loadRelations($entity);
 
-            if (false === $this->eventEmitter()->emit('afterLoad', [$entity, $this])) {
-                return false;
-            }
-
             return true;
         }
 
@@ -239,9 +235,8 @@ class Mapper implements MapperInterface
     }
 
     /**
-     * Prepare an entity by loading its relations.
-     *
-     * Returns true when relations were loaded, null when there is nothing to do.
+     * Prepare entity after loading from the database (read path).
+     * Loads relations and emits the afterLoad event.
      */
     public function prepareEntityAfterLoad(EntityInterface $entity): bool|null
     {
@@ -997,6 +992,15 @@ class Mapper implements MapperInterface
             }
             $fieldType   = $legacyTypeMap[$originalFieldType] ?? $originalFieldType;
             $typeHandler = Type::getType($fieldType);
+
+            // DBAL4 DateTimeType strictly requires DateTime, not DateTimeImmutable.
+            // Coerce transparently so existing code using DateTimeImmutable keeps working.
+            if ($value instanceof \DateTimeImmutable
+                && in_array($fieldType, ['datetime', 'date', 'time', 'datetimetz'], true)
+            ) {
+                $value = \DateTime::createFromImmutable($value);
+            }
+
             $dbData[$field] = $typeHandler->convertToDatabaseValue($value, $platform);
         }
 

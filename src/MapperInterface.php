@@ -148,14 +148,12 @@ interface MapperInterface
 
     /**
      * @param array<string, mixed> $data
-     *
      * @return array<string, mixed>
      */
     public function convertToDatabaseValues(string $entityName, array $data): array;
 
     /**
      * @param array<string, mixed> $data
-     *
      * @return array<string, mixed>
      */
     public function convertToPHPValues(string $entityName, array $data): array;

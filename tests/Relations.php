@@ -120,10 +120,13 @@ class Relations extends \PHPUnit\Framework\TestCase
         $post->author_id = 1;
         $mapper->save($post);
 
-        // Testing that we can iterate over an empty set
+        // Testing that we can iterate over an empty set without errors
+        $commentCount = 0;
         foreach ($post->comments as $comment) {
-            $this->assertTrue($comment instanceof \SpotTest\Entity\Post\Comment);
+            $this->assertInstanceOf(\SpotTest\Entity\Post\Comment::class, $comment);
+            $commentCount++;
         }
+        $this->assertSame(0, $commentCount, 'A new post should have no comments');
     }
 
     /**

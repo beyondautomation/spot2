@@ -118,6 +118,10 @@ class QuerySql extends \PHPUnit\Framework\TestCase
         $mapper->delete(['id' => $posttag_id]);
         $postMapper->delete($post);
         $tagMapper->delete($tag);
+
+        // Assert the insert/delete cycle completed without errors
+        $this->assertNotFalse($posttag_id, 'PostTag insert should succeed');
+        $this->assertNull($mapper->get($posttag_id), 'PostTag should be deleted after acknowledging');
     }
 
     public function testQueryInstance()

@@ -212,13 +212,16 @@ class CRUD extends \PHPUnit\Framework\TestCase
     public function testTruncate()
     {
         $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
-        $postTagMapper->truncateTable();
+        $result = $postTagMapper->truncateTable();
+        $this->assertTrue($result !== false, 'truncateTable() should not return false');
+        $this->assertSame(0, $postTagMapper->all()->count(), 'Table should be empty after truncate');
     }
 
     public function testDeleteAll()
     {
         $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
         $postTagMapper->delete();
+        $this->assertSame(0, $postTagMapper->all()->count(), 'All records should be deleted');
     }
 
     public function testStrictInsert()

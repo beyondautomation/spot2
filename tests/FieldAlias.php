@@ -117,7 +117,10 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         $legacy->number = 5;
 
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
-        $mapper->save($legacy);
+        $result = $mapper->save($legacy);
+
+        $this->assertNotFalse($result, 'save() should succeed for a valid Legacy entity');
+        $this->assertNotNull($legacy->id, 'Entity should have an id after insert');
 
         return $legacy;
     }
@@ -144,7 +147,12 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         $legacy->number = 6;
 
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
-        $mapper->save($legacy);
+        $result = $mapper->save($legacy);
+
+        $this->assertNotFalse($result, 'save() should succeed when updating a Legacy entity');
+        $saved = $mapper->get($legacy->id);
+        $this->assertSame('Something ELSE Here', $saved->name, 'Name should be updated');
+        $this->assertSame(6, (int) $saved->number, 'Number should be updated');
     }
 
     /**

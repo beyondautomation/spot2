@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
-use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 
@@ -21,29 +20,51 @@ return RectorConfig::configure()
         __DIR__ . '/tests',
     ])
 
-    // Target PHP 8.3 (matches composer.json require)
+    // Target PHP 8.3 minimum (matches composer.json require: >=8.3.0)
     ->withPhpSets(php83: true)
 
     ->withSets([
-        // Code-quality improvements that are safe across versions
+        // Core code quality — simplifies expressions, removes dead code, etc.
         SetList::CODE_QUALITY,
         SetList::DEAD_CODE,
+
+        // Add missing type declarations across the board
         SetList::TYPE_DECLARATION,
 
-        // PHPUnit 10/11 compatibility
+        // Early return / guard clause patterns for cleaner nesting
+        SetList::EARLY_RETURN,
+
+        // Coding style normalisations safe to apply automatically
+        SetList::CODING_STYLE,
+
+        // PHPUnit 10/11 compatibility (assertSame, setUp return types, etc.)
         PHPUnitSetList::PHPUNIT_100,
+        PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
     ])
 
-    // Rules we explicitly skip because they would break Spot's design
+    // Rules we explicitly skip because they conflict with Spot's design
     ->withSkip([
-        // Entity::fields() and ::relations() are static on user-defined subclasses —
-        // turning them into non-static would break every existing entity definition.
+        // Entity::fields() / ::relations() are intentionally static on user subclasses.
+        // Converting them to non-static would break every existing entity definition.
         \Rector\Php71\Rector\FuncCall\CountOnNullRector::class,
-        // Spot's collection magic __get is intentional; typed properties would require
-        // all subclass fields to be declared, breaking the dynamic data[] pattern.
+
+        // Spot's dynamic data[] pattern means Entity properties cannot be declared
+        // as typed properties — subclasses store everything in _data/_dataModified.
         \Rector\Php74\Rector\Property\TypedPropertyRector::class => [
             __DIR__ . '/src/Entity.php',
             __DIR__ . '/src/Entity/Manager.php',
             __DIR__ . '/src/Config.php',
         ],
+
+        // Rector sometimes wants to inline single-use variables that are assigned
+        // by reference (&$var) — this breaks Spot's reference-based __get magic.
+        \Rector\CodingStyle\Rector\Assign\SplitDoubleAssignRector::class,
+
+        // Don't convert string interpolation — Spot uses it intentionally in SQL
+        // generation and converting it reduces readability there.
+        \Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector::class,
+
+        // PHPUnit: don't flag tests that use @depends — the dependency chain in
+        // the test suite relies on exact method names and return values.
+        \Rector\PHPUnit\Rector\ClassMethod\AddDoesNotPerformAssertionToNonAssertingTestRector::class,
     ]);

@@ -2,10 +2,19 @@
     "name": "beyondautomation/spot2",
     "type": "library",
     "description": "Simple DataMapper built on top of Doctrine DBAL",
-    "keywords": ["orm", "datamapper", "dbal", "doctrine", "database", "model", "mapper", "entity"],
+    "keywords": [
+        "orm",
+        "datamapper",
+        "dbal",
+        "doctrine",
+        "database",
+        "model",
+        "mapper",
+        "entity"
+    ],
     "homepage": "https://github.com/beyondautomation/spot2",
-    "license" : "BSD",
-    "authors" : [
+    "license": "BSD-3-Clause",
+    "authors": [
         {
             "name": "Vance Lucas",
             "email": "vance@vancelucas.com",
@@ -13,23 +22,59 @@
         }
     ],
     "require": {
-        "php": ">= 8.1.0",
-        "vlucas/valitron": "^1.4.11",
-        "doctrine/dbal": "^2.13.9",
-        "sabre/event": "^6.0.1"
+        "php": ">=8.3.0",
+        "doctrine/dbal": "^4.0",
+        "sabre/event": "^6.0.1",
+        "vlucas/valitron": "^1.4.11"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6.7",
-        "rector/rector": "^0.15.25"
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^1.0 || ^2.0",
+        "phpunit/phpunit": "^10.0 || ^11.0",
+        "rector/rector": "^1.0 || ^2.0"
     },
     "autoload": {
         "psr-4": {
-            "Spot\\": "lib/"
+            "Spot\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-          "SpotTest\\": "tests/"
+            "SpotTest\\": "tests/"
         }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "test": "./vendor/bin/phpunit --configuration phpunit_sqlite.xml",
+        "test:mysql": "./vendor/bin/phpunit --configuration phpunit_mysql.xml",
+        "test:pgsql": "./vendor/bin/phpunit --configuration phpunit_pgsql.xml",
+        "test:coverage": "./vendor/bin/phpunit --configuration phpunit_sqlite.xml --coverage-html coverage/",
+        "cs:check": "./vendor/bin/php-cs-fixer check --config .php-cs-fixer.php --diff",
+        "cs:fix": "./vendor/bin/php-cs-fixer fix --config .php-cs-fixer.php",
+        "analyse": "./vendor/bin/phpstan analyse --configuration phpstan.neon",
+        "rector:dry": "./vendor/bin/rector process --dry-run",
+        "rector:fix": "./vendor/bin/rector process",
+        "check": [
+            "@cs:check",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "scripts-descriptions": {
+        "test": "Run SQLite tests (no setup needed)",
+        "test:mysql": "Run MySQL tests (set SPOT_DB_DSN=mysql://user:pass@host/db to override default)",
+        "test:pgsql": "Run PostgreSQL tests (set SPOT_DB_DSN=pgsql://user:pass@host/db to override default)",
+        "test:coverage": "Run tests and generate HTML coverage report in coverage/",
+        "cs:check": "Check code style without modifying files",
+        "cs:fix": "Auto-fix code style violations",
+        "analyse": "Run PHPStan static analysis",
+        "rector:dry": "Preview Rector refactors without applying them",
+        "rector:fix": "Apply Rector refactors",
+        "check": "Run cs:check + analyse + test in sequence (CI pipeline)"
     }
 }

@@ -1,14 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Relations extends \PHPUnit_Framework_TestCase
+class Relations extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Event\Search', 'Event'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
@@ -19,16 +22,16 @@ class Relations extends \PHPUnit_Framework_TestCase
             'id' => 1,
             'email' => 'example@example.com',
             'password' => 't00r',
-            'is_admin' => false
+            'is_admin' => false,
         ]);
         $result = $authorMapper->insert($author);
 
         if (!$result) {
-            throw new \Exception("Unable to create author: " . var_export($author->data(), true));
+            throw new \Exception('Unable to create author: ' . var_export($author->data(), true));
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -39,7 +42,7 @@ class Relations extends \PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
         $post = $mapper->get();
-        $post->title = "My Awesome Blog Post";
+        $post->title = 'My Awesome Blog Post';
         $post->body = "<p>This is a really awesome super-duper post.</p><p>It's testing the relationship functions.</p>";
         $post->date_created = new \DateTime();
         $post->author_id = 1;
@@ -71,13 +74,14 @@ class Relations extends \PHPUnit_Framework_TestCase
             'name' => 'Testy McTester',
             'email' => 'test@test.com',
             'body' => 'This is a test comment. Yay!',
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $commentSaved = $commentMapper->save($comment);
+
         if (!$commentSaved) {
             print_r($comment->errors());
-            $this->fail("Comment NOT saved");
+            $this->fail('Comment NOT saved');
         }
 
         $this->assertTrue(false !== $commentSaved);
@@ -100,19 +104,19 @@ class Relations extends \PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
         $post = $mapper->get();
-        $post->title = "No Comments";
-        $post->body = "<p>Comments relation test</p>";
+        $post->title = 'No Comments';
+        $post->body = '<p>Comments relation test</p>';
         $mapper->save($post);
 
-        $this->assertSame(0, count($post->comments));
+        $this->assertSame(0, count($post->comments ?? []));
     }
 
     public function testBlogCommentsIterateEmptySet()
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
         $post = $mapper->get();
-        $post->title = "No Comments";
-        $post->body = "<p>Comments relation test</p>";
+        $post->title = 'No Comments';
+        $post->body = '<p>Comments relation test</p>';
         $post->author_id = 1;
         $mapper->save($post);
 
@@ -154,7 +158,7 @@ class Relations extends \PHPUnit_Framework_TestCase
         $sortedComments = $post->comments->order(['date_created' => 'DESC']);
         $this->assertInstanceOf('Spot\Relation\HasMany', $sortedComments);
 
-        $this->assertContains("ORDER BY", $sortedComments->query()->toSql());
+        $this->assertStringContainsString('ORDER BY', $sortedComments->query()->toSql());
     }
 
     /**
@@ -166,6 +170,7 @@ class Relations extends \PHPUnit_Framework_TestCase
         $post = $mapper->get($postId);
 
         $before_count = $post->comments->count();
+
         foreach ($post->comments as $comment) {
             $query = $comment->post;
         }
@@ -194,37 +199,41 @@ class Relations extends \PHPUnit_Framework_TestCase
         $tagCount = 3;
 
         // Create some tags
-        $tags = array();
+        $tags = [];
         $tagMapper = test_spot_mapper('SpotTest\Entity\Tag');
         for ($i = 1; $i <= $tagCount; $i++) {
             $tags[] = $tagMapper->create([
-                'name'  => "Title {$i}"
+                'name'  => "Title {$i}",
             ]);
         }
 
         // Insert all tags for current post
         $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
+
         foreach ($tags as $tag) {
             $posttag_id = $postTagMapper->create([
                 'post_id' => $post->id,
-                'tag_id' => $tag->id
+                'tag_id' => $tag->id,
             ]);
         }
 
         $this->assertSame($tagCount, count($post->tags));
         $tagData = [];
+
         foreach ($tags as $tag) {
             $tagData[] = $tag->data();
         }
-        $this->assertEquals($tagData, $post->tags->map(function ($tag) { return $tag->data(); }));
+        $this->assertEquals($tagData, $post->tags->map(function ($tag) {
+            return $tag->data();
+        }));
     }
 
     public function testEventInsert()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event');
         $event = $mapper->get();
-        $event->title = "My Awesome Event";
-        $event->description = "Some equally awesome event description here.";
+        $event->title = 'My Awesome Event';
+        $event->description = 'Some equally awesome event description here.';
         $event->type = 'free';
         $event->date_start = new \DateTime();
         $eventId = $mapper->save($event);
@@ -282,11 +291,9 @@ class Relations extends \PHPUnit_Framework_TestCase
         $this->assertEquals($event->id, $eventId);
     }
 
-    /**
-     * @expectedException InvalidArgumentException
-     */
     public function testInvalidRelationClass()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
         $entity = $mapper->first();
         $entity->fake = $mapper->hasOne($entity, 'Nonexistent\Entity', 'fake_field');
@@ -307,8 +314,8 @@ class Relations extends \PHPUnit_Framework_TestCase
             'is_admin' => false,
         ]);
         $post = $postMapper->create([
-            'title'     => "Testing Property Access",
-            'body'      => "I hope array access is set correctly",
+            'title'     => 'Testing Property Access',
+            'body'      => 'I hope array access is set correctly',
             'author_id' => $author->id,
         ]);
 
@@ -327,8 +334,8 @@ class Relations extends \PHPUnit_Framework_TestCase
             'is_admin' => false,
         ]);
         $post = $postMapper->create([
-            'title'     => "Testing Property Access",
-            'body'      => "I hope array access is set correctly",
+            'title'     => 'Testing Property Access',
+            'body'      => 'I hope array access is set correctly',
             'author_id' => $author->id,
         ]);
 

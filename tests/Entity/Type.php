@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 /**
@@ -9,16 +12,16 @@ namespace SpotTest\Entity;
  */
 class Type extends \Spot\Entity
 {
-    protected static $_datasource = 'test_types';
-
     // Declared 'public static' here so they can be modified by tests - this is for TESTING ONLY
     public static $_fields = [
         'id'            => ['type' => 'integer', 'primary' => true, 'serial' => true],
-        'serialized'    => ['type' => 'json_array'],
-        'date_created'  => ['type' => 'datetime']
+        'serialized'    => ['type' => 'json'],
+        'date_created'  => ['type' => 'datetime'],
     ];
 
-    public static function fields()
+    protected static $_datasource = 'test_types';
+
+    public static function fields(): array
     {
         return self::$_fields;
     }

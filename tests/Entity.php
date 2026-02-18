@@ -1,14 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Entity extends \PHPUnit_Framework_TestCase
+class Entity extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['Post', 'Author', 'CustomMethods'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
@@ -19,16 +22,16 @@ class Entity extends \PHPUnit_Framework_TestCase
             'id' => 1,
             'email' => 'example@example.com',
             'password' => 't00r',
-            'is_admin' => false
+            'is_admin' => false,
         ]);
         $result = $authorMapper->insert($author);
 
         if (!$result) {
-            throw new \Exception("Unable to create author: " . var_export($author->data(), true));
+            throw new \Exception('Unable to create author: ' . var_export($author->data(), true));
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -41,8 +44,8 @@ class Entity extends \PHPUnit_Framework_TestCase
         $post = new \SpotTest\Entity\Post();
 
         // Set data
-        $post->title = "My Awesome Post";
-        $post->body = "<p>Body</p>";
+        $post->title = 'My Awesome Post';
+        $post->body = '<p>Body</p>';
         $post->author_id = 1;
 
         $data = $post->data();
@@ -55,7 +58,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'status' => 0,
             'date_created' => new \DateTime(),
             'data' => null,
-            'author_id' => 1
+            'author_id' => 1,
         ];
         ksort($testData);
 
@@ -71,7 +74,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'title' => 'My Awesome Post',
             'body' => '<p>Body</p>',
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $data = $post->data();
@@ -85,7 +88,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'date_created' => null,
             'data' => null,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ];
         ksort($testData);
 
@@ -96,10 +99,10 @@ class Entity extends \PHPUnit_Framework_TestCase
     {
         $post = new \SpotTest\Entity\Post([
             'title' => 'My Awesome Post',
-            'body' => '<p>Body</p>'
+            'body' => '<p>Body</p>',
         ]);
         $postErrors = [
-            'title' => ['Title cannot contain the word awesome']
+            'title' => ['Title cannot contain the word awesome'],
         ];
 
         // Has NO errors
@@ -122,7 +125,7 @@ class Entity extends \PHPUnit_Framework_TestCase
     {
         $data = [
             'title' => 'My Awesome Post 2',
-            'body' => '<p>Body 2</p>'
+            'body' => '<p>Body 2</p>',
         ];
 
         $testData = [
@@ -132,7 +135,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'status' => 0,
             'date_created' => null,
             'data' => null,
-            'author_id' => 1
+            'author_id' => 1,
         ];
 
         // Set initial data
@@ -193,7 +196,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'status' => 0,
             'author_id' => 1,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ];
         $post = new \SpotTest\Entity\Post($data);
         $this->assertEquals($post->data, ['posts' => 'are cool', 'another field' => 'to serialize']);
@@ -219,7 +222,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'body' => 'A Body',
             'status' => 0,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ];
 
         $post = new \SpotTest\Entity\Post($data);
@@ -238,7 +241,7 @@ class Entity extends \PHPUnit_Framework_TestCase
         $post->data['posts'] = 'are really cool';
         $this->assertEquals($post->data, ['posts' => 'are really cool', 'another field' => 'to serialize']);
 
-        $data =& $post->data;
+        $data = & $post->data;
         $data['posts'] = 'are still cool';
         $this->assertEquals($post->data, ['posts' => 'are still cool', 'another field' => 'to serialize']);
     }
@@ -250,7 +253,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'body' => 'A Body',
             'status' => 0,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ];
 
         $post = new \SpotTest\Entity\Post($data);
@@ -268,7 +271,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'body' => 'A Body',
             'status' => 0,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ];
 
         $post = new \SpotTest\Entity\Post($data);
@@ -290,7 +293,7 @@ class Entity extends \PHPUnit_Framework_TestCase
     public function testCustomSetterMethodWithArrayLoad()
     {
         $entity = new \SpotTest\Entity\CustomMethods([
-            'test1' => 'test'
+            'test1' => 'test',
         ]);
 
         $this->assertEquals('test_test_gotten', $entity->test1);
@@ -299,7 +302,7 @@ class Entity extends \PHPUnit_Framework_TestCase
     public function testCustomGetterMethodWithArrayData()
     {
         $entity = new \SpotTest\Entity\CustomMethods([
-            'test1' => 'test'
+            'test1' => 'test',
         ]);
         $data = $entity->data();
 
@@ -312,7 +315,7 @@ class Entity extends \PHPUnit_Framework_TestCase
 
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
-            'test2' => 'copy'
+            'test2' => 'copy',
         ]);
         $id = $mapper->save($entity);
 
@@ -328,7 +331,7 @@ class Entity extends \PHPUnit_Framework_TestCase
     public function testGetPrimaryKeyField()
     {
         $entity = new \SpotTest\Entity\CustomMethods([
-            'test1' => 'test'
+            'test1' => 'test',
         ]);
         $this->assertEquals('id', $entity->primaryKeyField());
     }
@@ -336,7 +339,7 @@ class Entity extends \PHPUnit_Framework_TestCase
     public function testGetPrimaryKeyFieldValue()
     {
         $entity = new \SpotTest\Entity\CustomMethods([
-            'test1' => 'test'
+            'test1' => 'test',
         ]);
         $this->assertEquals($entity->id, $entity->primaryKey());
     }
@@ -348,7 +351,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'body' => 'A Body',
             'status' => 0,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $json = json_encode($post);
         $data = json_decode($json, true);
@@ -363,7 +366,7 @@ class Entity extends \PHPUnit_Framework_TestCase
             'body' => 'A Body',
             'status' => 0,
             'data' => ['posts' => 'are cool', 'another field' => 'to serialize'],
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $json = (string) $post;
         $data = json_decode($json, true);

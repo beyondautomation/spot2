@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 /**
@@ -10,18 +12,16 @@ namespace SpotTest\Entity;
  */
 class ArrayObjectType extends \Spot\Entity
 {
+    protected static ?string $table = 'test_array_object';
 
-    protected static $table = 'test_array_object';
-
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id' => ['type' => 'integer', 'primary' => true, 'autoincrement' => true],
             'fld_array' => ['type' => 'array', 'value' => []],
             'fld_simple_array' => ['type' => 'simple_array', 'value' => []],
-            'fld_json_array' => ['type' => 'json_array', 'value' => []],
+            'fld_json_array' => ['type' => 'json', 'value' => []],
             'fld_object' => ['type' => 'object', 'value' => new \stdClass()],
         ];
     }
-
 }

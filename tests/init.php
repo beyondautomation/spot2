@@ -1,36 +1,34 @@
 <?php
-/**
-* @package Spot
-*/
 
-error_reporting(-1);
-ini_set('display_errors', 1);
+declare(strict_types=1);
 
-/**
-* Autoload test fixtures
-*/
-$autoload = require dirname(dirname(__FILE__)) . '/vendor/autoload.php';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 
-// Date setup
+require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/Bootstrap.php';
+
 date_default_timezone_set('America/Chicago');
 
-// Setup available adapters for testing
-$cfg = new \Spot\Config();
-$dbDsn  = getenv('SPOT_DB_DSN');
+// PHPUnit <env> tags populate $_ENV. getenv() may not see them on all platforms.
+$dbDsn = $_ENV['SPOT_DB_DSN'] ?? getenv('SPOT_DB_DSN') ?: 'sqlite::memory:';
 
-if (!empty($dbDsn)) {
-    $cfg->addConnection('test', $dbDsn);
-} else {
-    die('DSN not configured');
-}
+$cfg = new \Spot\Config();
+$cfg->addConnection('test', $dbDsn);
+
+// Store in a static property so it survives across PHPUnit's test class boundary.
+// A plain PHP global variable can become unreachable from static test methods
+// depending on the PHP version and PHPUnit runner configuration.
+\SpotTest\Bootstrap::$locator = new \Spot\Locator($cfg);
 
 /**
-* Return Spot mapper for use
-*/
-$spot = new Spot\Locator($cfg);
-function test_spot_mapper($entityName)
+ * Helper to get a mapper in tests.
+ *
+ * @param string $entityName Fully-qualified entity class name.
+ *
+ * @internal Use only in tests — not for production code.
+ */
+function test_spot_mapper(string $entityName): \Spot\Mapper
 {
-    global $spot; // you should never do this in real code :)
-
-    return $spot->mapper($entityName);
+    return \SpotTest\Bootstrap::$locator->mapper($entityName);
 }

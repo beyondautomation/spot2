@@ -1,14 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Events extends \PHPUnit_Framework_TestCase
+class Events extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
@@ -17,56 +20,56 @@ class Events extends \PHPUnit_Framework_TestCase
         // Insert blog dummy data
         for ($i = 1; $i <= 3; $i++) {
             $tag_id = test_spot_mapper('SpotTest\Entity\Tag')->insert([
-                'name' => "Title {$i}"
+                'name' => "Title {$i}",
             ]);
         }
         for ($i = 1; $i <= 4; $i++) {
             $author_id = test_spot_mapper('SpotTest\Entity\Author')->insert([
                 'email' => $i.'user@somewhere.com',
-                'password' => 'securepassword'
+                'password' => 'securepassword',
             ]);
         }
 
         $postMapper = test_spot_mapper('SpotTest\Entity\Post');
         for ($i = 1; $i <= 10; $i++) {
             $post = $postMapper->build([
-                'title' => ($i % 2 ? 'odd' : 'even' ). '_title',
+                'title' => ($i % 2 ? 'odd' : 'even'). '_title',
                 'body' => '<p>' . $i  . '_body</p>',
-                'status' => $i ,
+                'status' => $i,
                 'date_created' => new \DateTime(),
-                'author_id' => rand(1,3)
+                'author_id' => rand(1, 3),
             ]);
             $result = $postMapper->insert($post);
 
             if (!$result) {
-                throw new \Exception("Unable to create post: " . var_export($post->data(), true));
+                throw new \Exception('Unable to create post: ' . var_export($post->data(), true));
             }
 
             for ($j = 1; $j <= 2; $j++) {
                 test_spot_mapper('SpotTest\Entity\Post\Comment')->insert([
                     'post_id' => $post->id,
-                    'name' => ($j % 2 ? 'odd' : 'even' ). '_title',
+                    'name' => ($j % 2 ? 'odd' : 'even'). '_title',
                     'email' => 'bob@somewhere.com',
-                    'body' => ($j % 2 ? 'odd' : 'even' ). '_comment_body',
+                    'body' => ($j % 2 ? 'odd' : 'even'). '_comment_body',
                 ]);
             }
             for ($j = 1; $j <= $i % 3; $j++) {
                 $posttag_id = test_spot_mapper('SpotTest\Entity\PostTag')->insert([
                     'post_id' => $post->id,
-                    'tag_id' => $j
+                    'tag_id' => $j,
                 ]);
             }
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
         }
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         Entity\Post::$events = [];
     }
@@ -80,7 +83,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'title' => 'A title',
             'body' => '<p>body</p>',
             'status' => 1,
-            'author_id' => 1
+            'author_id' => 1,
         ]);
 
         $hooks = [];
@@ -123,7 +126,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $hooks = [];
@@ -157,7 +160,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 4,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $eventEmitter = $mapper->eventEmitter();
@@ -181,7 +184,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $mapper->save($post);
 
@@ -219,7 +222,7 @@ class Events extends \PHPUnit_Framework_TestCase
         $author = test_spot_mapper('SpotTest\Entity\Author')->insert([
             'id' => $author_id,
             'email' => $author_id.'user@somewhere.com',
-            'password' => 'securepassword'
+            'password' => 'securepassword',
         ]);
 
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -230,7 +233,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => $author_id,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $mapper->save($post);
         $this->assertEquals(1, $post->status);
@@ -256,7 +259,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $mapper->save($post);
 
@@ -293,7 +296,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
         $mapper->save($post);
 
@@ -321,7 +324,7 @@ class Events extends \PHPUnit_Framework_TestCase
         $this->assertEquals($arrayHooks, []);
 
         $mapper->delete([
-            $post->primaryKeyField() => $post->primaryKey()
+            $post->primaryKeyField() => $post->primaryKey(),
         ]);
 
         $this->assertEquals($entityHooks, []);
@@ -342,13 +345,13 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $i = $post->status;
 
         \SpotTest\Entity\Post::$events = [
-            'beforeSave' => ['mock_save_hook']
+            'beforeSave' => ['mock_save_hook'],
         ];
         $mapper->loadEvents();
 
@@ -358,7 +361,7 @@ class Events extends \PHPUnit_Framework_TestCase
         $eventEmitter->removeAllListeners('beforeSave');
 
         \SpotTest\Entity\Post::$events = [
-            'beforeSave' => ['mock_save_hook', 'mock_save_hook']
+            'beforeSave' => ['mock_save_hook', 'mock_save_hook'],
         ];
         $mapper->loadEvents();
 
@@ -403,7 +406,7 @@ class Events extends \PHPUnit_Framework_TestCase
             $hooks[] = 'Called afterWith';
         });
 
-        $mapper->all('\SpotTest\Entity\Post', ['id' => [1,2]])->with('comments')->execute();
+        $mapper->all('\SpotTest\Entity\Post', ['id' => [1, 2]])->with('comments')->execute();
 
         $this->assertEquals(['Called beforeWith', 'Called loadWith', 'Called afterWith'], $hooks);
         $eventEmitter->removeAllListeners();
@@ -421,7 +424,7 @@ class Events extends \PHPUnit_Framework_TestCase
                     'post_id' => $post->id,
                     'name'    => 'Chester Tester',
                     'email'   => 'chester@tester.com',
-                    'body'    => 'Some body content here that Chester made!'
+                    'body'    => 'Some body content here that Chester made!',
                 ]);
 
                 $post->relation($relationName, new \Spot\Entity\Collection($comments));
@@ -431,6 +434,7 @@ class Events extends \PHPUnit_Framework_TestCase
         });
 
         $posts = $mapper->all()->with('comments')->execute();
+
         foreach ($posts as $post) {
             $this->assertEquals(1, $post->comments->count());
         }
@@ -446,7 +450,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $hooks = [];
@@ -478,12 +482,13 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
+        $eventEmitter->removeAllListeners('beforeSave');
         $eventEmitter->removeAllListeners('afterSave');
         \SpotTest\Entity\Post::$events = [
-            'afterSave' => ['mock_save_hook']
+            'afterSave' => ['mock_save_hook'],
         ];
         $mapper->loadEvents();
 
@@ -503,7 +508,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $hooks = [];
@@ -531,7 +536,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $hooks = [];
@@ -570,7 +575,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $this->assertEquals(['before', 'after'], $hooks);
@@ -593,7 +598,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $this->assertEquals(['after'], $hooks);
@@ -619,7 +624,7 @@ class Events extends \PHPUnit_Framework_TestCase
             'body' => '<p>body</p>',
             'status' => 1,
             'author_id' => 1,
-            'date_created' => new \DateTime()
+            'date_created' => new \DateTime(),
         ]);
 
         $post->status = 2;

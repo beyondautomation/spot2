@@ -1,52 +1,55 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class SchemaQuerySql extends \PHPUnit_Framework_TestCase
+class SchemaQuerySql extends \PHPUnit\Framework\TestCase
 {
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (['Schema\Test'] as $entity) {
             test_spot_mapper('SpotTest\Entity\\' . $entity)->migrate();
         }
 
         // Insert dummy data
-		$entities = [];
+        $entities = [];
         for ($i = 1; $i <= 10; $i++) {
             $entities[] = test_spot_mapper('SpotTest\Entity\Schema\Test')->insert([
                 'index' => $i % 5,
-				'unique' => $i * 2
+                'unique' => $i * 2,
             ]);
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (['Schema\Test'] as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
         }
     }
 
-	// Filtering
-	public function testWhere()
+    // Filtering
+    public function testWhere()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Schema\Test');
         $query = $mapper->where(['unique' => 6])->noQuote();
-        $this->assertEquals("SELECT * FROM spot_test.test_schema_test WHERE spot_test.test_schema_test.unique = ?", $query->toSql());
+        $this->assertEquals('SELECT * FROM spot_test.test_schema_test WHERE spot_test.test_schema_test.unique = ?', $query->toSql());
     }
 
-	// Ordering
+    // Ordering
     public function testOrderBy()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Schema\Test');
         $query = $mapper->where(['index' => 2])->order(['unique' => 'ASC'])->noQuote();
-        $this->assertContains("ORDER BY spot_test.test_schema_test.unique ASC", $query->toSql());
-        $this->assertEquals("SELECT * FROM spot_test.test_schema_test WHERE spot_test.test_schema_test.index = ? ORDER BY spot_test.test_schema_test.unique ASC", $query->toSql());
+        $this->assertStringContainsString('ORDER BY spot_test.test_schema_test.unique ASC', $query->toSql());
+        $this->assertEquals('SELECT * FROM spot_test.test_schema_test WHERE spot_test.test_schema_test.index = ? ORDER BY spot_test.test_schema_test.unique ASC', $query->toSql());
     }
 
-	// Identifier quoting
+    // Identifier quoting
     public function testQuoting()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Schema\Test');
@@ -54,14 +57,14 @@ class SchemaQuerySql extends \PHPUnit_Framework_TestCase
         $expected = str_replace(
             '`',
             $mapper->connection()->getDatabasePlatform()->getIdentifierQuoteCharacter(),
-            'SELECT * FROM `spot_test`.`test_schema_test` WHERE `spot_test`.`test_schema_test`.`index` >= ?'
+            'SELECT * FROM `spot_test`.`test_schema_test` WHERE `spot_test`.`test_schema_test`.`index` >= ?',
         );
 
         $query = $mapper->where(['index >=' => 2])->toSql();
 
         $this->assertEquals(
             $expected,
-            $query
+            $query,
         );
     }
 }

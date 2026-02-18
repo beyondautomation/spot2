@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Config extends \PHPUnit_Framework_TestCase
+class Config extends \PHPUnit\Framework\TestCase
 {
     public function testAddConnectionSqlite()
     {
@@ -35,7 +38,7 @@ class Config extends \PHPUnit_Framework_TestCase
         $cfg = new \Spot\Config();
         $adapter = $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
 
-        $this->assertInternalType('string', serialize($cfg));
+        $this->assertIsString(serialize($cfg));
     }
 
     public function testConfigCanUnserialize()
@@ -54,7 +57,7 @@ class Config extends \PHPUnit_Framework_TestCase
             'user' => 'test',
             'password' => 'password',
             'host' => 'localhost',
-            'driver' => 'pdo_mysql'
+            'driver' => 'pdo_mysql',
         ];
         $adapter = $cfg->addConnection('test_array', $dbalArray);
         $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
@@ -68,7 +71,7 @@ class Config extends \PHPUnit_Framework_TestCase
             'user' => 'test',
             'password' => 'password',
             'host' => 'localhost',
-            'driver' => 'pdo_mysql'
+            'driver' => 'pdo_mysql',
         ];
 
         $config = new \Doctrine\DBAL\Configuration();

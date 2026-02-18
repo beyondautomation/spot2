@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\Entity;
@@ -10,9 +13,9 @@ use Spot\Entity;
  */
 class MultipleUniques extends \Spot\Entity
 {
-    protected static $table = 'test_multipleuniques';
+    protected static ?string $table = 'test_multipleuniques';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id'     => ['type' => 'integer', 'autoincrement' => true, 'primary' => true],

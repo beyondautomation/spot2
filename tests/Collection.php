@@ -1,14 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Collection extends \PHPUnit_Framework_TestCase
+class Collection extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['Tag'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
@@ -17,16 +20,16 @@ class Collection extends \PHPUnit_Framework_TestCase
         $tagCount = 3;
 
         // Create some tags
-        $tags = array();
+        $tags = [];
         $tagMapper = test_spot_mapper('SpotTest\Entity\Tag');
         for ($i = 1; $i <= $tagCount; $i++) {
             $tags[] = $tagMapper->create([
-                'name'  => "Title {$i}"
+                'name'  => "Title {$i}",
             ]);
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();

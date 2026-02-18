@@ -1,10 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\Entity;
 use Spot\EntityInterface;
 use Spot\MapperInterface;
-use Spot\EventEmitter;
 
 /**
  * Legacy - A legacy database table with custom column mappings
@@ -13,9 +15,9 @@ use Spot\EventEmitter;
  */
 class Legacy extends Entity
 {
-    protected static $table = 'test_legacy';
+    protected static ?string $table = 'test_legacy';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id'           => ['type' => 'integer', 'autoincrement' => true, 'primary' => true, 'column' => self::getIdFieldColumnName()],
@@ -23,14 +25,14 @@ class Legacy extends Entity
             'number'       => ['type' => 'integer', 'required' => true, 'column' => self::getNumberFieldColumnName()],
             'date_created' => ['type' => 'datetime', 'value' => new \DateTime(), 'column' => self::getDateCreatedColumnName()],
             'array'        => ['type' => 'array', 'required' => false],
-            'arrayAliased'=> ['type' => 'array', 'required' => false, 'column' => 'array_aliased']
+            'arrayAliased' => ['type' => 'array', 'required' => false, 'column' => 'array_aliased'],
         ];
     }
 
-    public static function relations(MapperInterface $mapper, EntityInterface $entity)
+    public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'legacy'])
+            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'legacy']),
         ];
     }
 

@@ -1,18 +1,24 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
+
 use SpotTest\Entity\Legacy;
 
 /**
  * @package Spot
  */
-class FieldAlias extends \PHPUnit_Framework_TestCase
+class FieldAlias extends \PHPUnit\Framework\TestCase
 {
     public static $legacyTable;
+
     private static $entities = ['PolymorphicComment', 'Legacy', 'Post', 'Author'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         self::$legacyTable = new \SpotTest\Entity\Legacy();
+
         foreach (self::$entities as $entity) {
             test_spot_mapper('SpotTest\Entity\\' . $entity)->migrate();
         }
@@ -22,30 +28,30 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
             'id' => 1,
             'email' => 'example@example.com',
             'password' => 't00r',
-            'is_admin' => false
+            'is_admin' => false,
         ]);
         $result = $authorMapper->insert($author);
 
         if (!$result) {
-            throw new \Exception("Unable to create author: " . var_export($author->data(), true));
+            throw new \Exception('Unable to create author: ' . var_export($author->data(), true));
         }
 
         $postMapper = test_spot_mapper('SpotTest\Entity\Post');
         $post = $postMapper->build([
             'title' => 'title',
             'body' => '<p>body</p>',
-            'status' => 1 ,
+            'status' => 1,
             'date_created' => new \DateTime(),
-            'author_id' => 1
+            'author_id' => 1,
         ]);
         $result = $postMapper->insert($post);
 
         if (!$result) {
-            throw new \Exception("Unable to create post: " . var_export($post->data(), true));
+            throw new \Exception('Unable to create post: ' . var_export($post->data(), true));
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -56,7 +62,7 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $query = $mapper->select()->noQuote()->where(['number' => 2, 'name' => 'legacy_crud']);
-        $this->assertEquals("SELECT * FROM test_legacy WHERE test_legacy." . self::$legacyTable->getNumberFieldColumnName() ." = ? AND test_legacy." . self::$legacyTable->getNameFieldColumnName() . " = ?", $query->toSql());
+        $this->assertEquals('SELECT * FROM test_legacy WHERE test_legacy.' . self::$legacyTable->getNumberFieldColumnName() .' = ? AND test_legacy.' . self::$legacyTable->getNameFieldColumnName() . ' = ?', $query->toSql());
     }
 
     // Ordering
@@ -64,26 +70,27 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $query = $mapper->where(['number' => 2])->order(['date_created' => 'ASC'])->noQuote();
-        $this->assertContains("ORDER BY test_legacy." . self::$legacyTable->getDateCreatedColumnName() . " ASC", $query->toSql());
+        $this->assertStringContainsString('ORDER BY test_legacy.' . self::$legacyTable->getDateCreatedColumnName() . ' ASC', $query->toSql());
     }
-    
+
     // Ordering by function
     public function testLegacyOrderByFunction()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $query = $mapper->where(['number' => 2])->order(['TRIM(name)' => 'ASC'])->noQuote();
-        $this->assertContains("ORDER BY TRIM(test_legacy." . self::$legacyTable->getNameFieldColumnName() . ") ASC", $query->toSql());
+        $this->assertStringContainsString('ORDER BY TRIM(test_legacy.' . self::$legacyTable->getNameFieldColumnName() . ') ASC', $query->toSql());
     }
-    
+
     // Ordering by complex function
     public function testLegacyOrderByComplexFunction()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
+
         if (!DriverSpecific::getWeekFunction($mapper)) {
             $this->markTestSkipped('This test is not supported with the current driver.');
         }
         $query = $mapper->where(['number' => 2])->order([DriverSpecific::getWeekFunction($mapper, 'date_created') => 'ASC'])->noQuote();
-        $this->assertContains("ORDER BY " . DriverSpecific::getWeekFunction($mapper, 'test_legacy.' . self::$legacyTable->getDateCreatedColumnName()) . " ASC", $query->toSql());
+        $this->assertStringContainsString('ORDER BY ' . DriverSpecific::getWeekFunction($mapper, 'test_legacy.' . self::$legacyTable->getDateCreatedColumnName()) . ' ASC', $query->toSql());
     }
 
     // Grouping
@@ -91,15 +98,15 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $query = $mapper->where(['name' => 'test_group'])->group(['id'])->noQuote();
-        $this->assertEquals("SELECT * FROM test_legacy WHERE test_legacy." . self::$legacyTable->getNameFieldColumnName() . " = ? GROUP BY test_legacy." . self::$legacyTable->getIdFieldColumnName(), $query->toSql());
+        $this->assertEquals('SELECT * FROM test_legacy WHERE test_legacy.' . self::$legacyTable->getNameFieldColumnName() . ' = ? GROUP BY test_legacy.' . self::$legacyTable->getIdFieldColumnName(), $query->toSql());
     }
-    
+
     // Grouping by function
     public function testLegacyGroupByFunction()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $query = $mapper->where(['number' => 2])->group(['TRIM(name)'])->noQuote();
-        $this->assertEquals("SELECT * FROM test_legacy WHERE test_legacy." . self::$legacyTable->getNumberFieldColumnName() . " = ? GROUP BY TRIM(test_legacy." . self::$legacyTable->getNameFieldColumnName() . ")", $query->toSql());
+        $this->assertEquals('SELECT * FROM test_legacy WHERE test_legacy.' . self::$legacyTable->getNumberFieldColumnName() . ' = ? GROUP BY TRIM(test_legacy.' . self::$legacyTable->getNameFieldColumnName() . ')', $query->toSql());
     }
 
     // Insert
@@ -111,6 +118,7 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
 
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
         $mapper->save($legacy);
+
         return $legacy;
     }
 
@@ -163,7 +171,7 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
             'item_type' => 'legacy',
             'name' => 'Testy McTesterpants',
             'email' => 'tester@chester.com',
-            'body' => '<p>Comment Text</p>'
+            'body' => '<p>Comment Text</p>',
         ]);
         $commentMapper->save($comment);
 
@@ -171,7 +179,8 @@ class FieldAlias extends \PHPUnit_Framework_TestCase
         $this->assertEquals(count($legacy->polymorphic_comments), 1);
     }
 
-    public function testFieldAliasMapping() {
+    public function testFieldAliasMapping()
+    {
         $testId = 2545;
         $testArray = ['testKey' => 'testValue'];
 

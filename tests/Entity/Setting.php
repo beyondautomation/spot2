@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 /**
@@ -8,14 +11,14 @@ namespace SpotTest\Entity;
  */
 class Setting extends \Spot\Entity
 {
-    protected static $table = 'test_settings';
+    protected static ?string $table = 'test_settings';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id'     => ['type' => 'integer', 'primary' => true, 'autoincrement' => true],
             'skey'   => ['type' => 'string', 'required' => true, 'unique' => true],
-            'svalue' => ['type' => 'encrypted',  'required' => true]
+            'svalue' => ['type' => 'encrypted',  'required' => true],
         ];
     }
 }

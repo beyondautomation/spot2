@@ -1,19 +1,24 @@
 <?php
+
+declare(strict_types=1);
+
+namespace SpotTest;
+
 /**
  * @package Spot
  */
-class Test_MultipleUniques extends PHPUnit_Framework_TestCase
+class MultipleUniques extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['MultipleUniques'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -24,59 +29,59 @@ class Test_MultipleUniques extends PHPUnit_Framework_TestCase
     {
         $mapper = test_spot_mapper('SpotTest\Entity\MultipleUniques');
 
-        $entity1 = new SpotTest\Entity\MultipleUniques([
+        $entity1 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test1',
             'data2' => 1,
-            'data3' => 'data3_test1'
+            'data3' => 'data3_test1',
         ]);
         $mapper->save($entity1);
 
-        $entity2 = new SpotTest\Entity\MultipleUniques([
+        $entity2 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test2',
             'data2' => 2,
-            'data3' => 'data3_test2'
+            'data3' => 'data3_test2',
         ]);
         $mapper->save($entity2);
 
-        $entity3 = new SpotTest\Entity\MultipleUniques([
+        $entity3 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test3',
             'data2' => 1,
-            'data3' => 'data3_test3'
+            'data3' => 'data3_test3',
         ]);
         $mapper->save($entity3);
 
-        $entity4 = new SpotTest\Entity\MultipleUniques([
+        $entity4 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test1',
             'data2' => 4,
-            'data3' => 'data3_test4'
+            'data3' => 'data3_test4',
         ]);
         $mapper->save($entity4);
 
-        $entity5 = new SpotTest\Entity\MultipleUniques([
+        $entity5 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test5',
             'data2' => 1,
-            'data3' => 'data3_test1'
+            'data3' => 'data3_test1',
         ]);
         $mapper->save($entity5);
 
-        $entity6 = new SpotTest\Entity\MultipleUniques([
+        $entity6 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test1',
             'data2' => 1,
-            'data3' => 'data3_test6'
+            'data3' => 'data3_test6',
         ]);
         $mapper->save($entity6);
 
-        $entity7 = new SpotTest\Entity\MultipleUniques([
+        $entity7 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test2',
             'data2' => 1,
-            'data3' => 'data3_test2'
+            'data3' => 'data3_test2',
         ]);
         $mapper->save($entity7);
 
-        $entity8 = new SpotTest\Entity\MultipleUniques([
+        $entity8 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test1',
             'data2' => 1,
-            'data3' => 'data3_test4'
+            'data3' => 'data3_test4',
         ]);
         $mapper->save($entity8);
 

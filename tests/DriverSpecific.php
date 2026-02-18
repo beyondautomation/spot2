@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
@@ -6,14 +9,16 @@ namespace SpotTest;
  */
 class DriverSpecific
 {
-    public static function getWeekFunction($mapper, $field = null) {
+    public static function getWeekFunction($mapper, $field = null)
+    {
         if ($mapper->connectionIs('mysql')) {
-            return "WEEK(" . $field . ")";
-        } else if ($mapper->connectionIs('pgsql')) {
-            return "EXTRACT(WEEK FROM TIMESTAMP " . $field . ")";
-        } else if ($mapper->connectionIs('sqlite')) {
-            return "STRFTIME('%W', " . $field . ")";
+            return 'WEEK(' . $field . ')';
+        } elseif ($mapper->connectionIs('pgsql')) {
+            return 'EXTRACT(WEEK FROM TIMESTAMP ' . $field . ')';
+        } elseif ($mapper->connectionIs('sqlite')) {
+            return "STRFTIME('%W', " . $field . ')';
         }
+
         return false;
-	}
+    }
 }

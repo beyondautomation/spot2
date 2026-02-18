@@ -1,8 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
-use Spot\MapperInterface;
 use Spot\EntityInterface;
+use Spot\MapperInterface;
 
 /**
  * Post
@@ -11,9 +14,9 @@ use Spot\EntityInterface;
  */
 class Tag extends \Spot\Entity
 {
-    protected static $table = 'test_tags';
+    protected static ?string $table = 'test_tags';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id'    => ['type' => 'integer', 'primary' => true, 'autoincrement' => true],
@@ -21,10 +24,10 @@ class Tag extends \Spot\Entity
         ];
     }
 
-    public static function relations(MapperInterface $mapper, EntityInterface $entity)
+    public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'posts' => $mapper->hasManyThrough($entity, 'SpotTest\Entity\Post', 'SpotTest\Entity\PostTag', 'tag_id', 'post_id')
+            'posts' => $mapper->hasManyThrough($entity, 'SpotTest\Entity\Post', 'SpotTest\Entity\PostTag', 'tag_id', 'post_id'),
         ];
     }
 }

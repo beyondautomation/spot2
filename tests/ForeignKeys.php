@@ -1,21 +1,24 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class ForeignKeys extends \PHPUnit_Framework_TestCase
+class ForeignKeys extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Post', 'Author', 'RecursiveEntity'];
+    private static $entities = ['Author', 'Post', 'RecursiveEntity'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -27,7 +30,7 @@ class ForeignKeys extends \PHPUnit_Framework_TestCase
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
         $entity = $mapper->entity();
         $table = $entity::table();
-        $schemaManager = $mapper->connection()->getSchemaManager();
+        $schemaManager = $mapper->connection()->createSchemaManager();
         $foreignKeys = $schemaManager->listTableForeignKeys($table);
 
         $this->assertEquals(1, count($foreignKeys));

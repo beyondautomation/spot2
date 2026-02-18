@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Manager extends \PHPUnit_Framework_TestCase
+class Manager extends \PHPUnit\Framework\TestCase
 {
     public function testNotnullOverride()
     {

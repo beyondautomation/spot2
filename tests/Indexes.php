@@ -1,21 +1,24 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Indexes extends \PHPUnit_Framework_TestCase
+class Indexes extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['Zip'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -31,7 +34,7 @@ class Indexes extends \PHPUnit_Framework_TestCase
             'city'  => 'Testville',
             'state' => 'NY',
             'lat'   => 1,
-            'lng'   => 2
+            'lng'   => 2,
         ];
 
         $zip1 = $zipMapper->create($data);
@@ -51,7 +54,7 @@ class Indexes extends \PHPUnit_Framework_TestCase
             'city'  => 'Testville',
             'state' => 'NY',
             'lat'   => 1,
-            'lng'   => 2
+            'lng'   => 2,
         ];
 
         $zip1 = $zipMapper->create($data);

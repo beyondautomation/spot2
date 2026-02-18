@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\Entity;
 use Spot\EntityInterface;
-use Spot\MapperInterface;
 use Spot\EventEmitter;
+use Spot\MapperInterface;
 use Spot\Query;
 
 /**
@@ -14,12 +17,12 @@ use Spot\Query;
  */
 class Post extends Entity
 {
-    protected static $table = 'test_posts';
-
     // For testing purposes only
     public static $events = [];
 
-    public static function fields()
+    protected static ?string $table = 'test_posts';
+
+    public static function fields(): array
     {
         return [
             'id'           => ['type' => 'integer', 'autoincrement' => true, 'primary' => true],
@@ -27,22 +30,22 @@ class Post extends Entity
             'body'         => ['type' => 'text', 'required' => true],
             'status'       => ['type' => 'integer', 'default' => 0, 'index' => true],
             'date_created' => ['type' => 'datetime', 'value' => new \DateTime()],
-            'data'         => ['type' => 'json_array'],
+            'data'         => ['type' => 'json'],
             'author_id'    => ['type' => 'integer', 'required' => true],
         ];
     }
 
-    public static function relations(MapperInterface $mapper, EntityInterface $entity)
+    public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
             'tags' => $mapper->hasManyThrough($entity, 'SpotTest\Entity\Tag', 'SpotTest\Entity\PostTag', 'tag_id', 'post_id'),
             'comments' => $mapper->hasMany($entity, 'SpotTest\Entity\Post\Comment', 'post_id')->order(['date_created' => 'ASC']),
             'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'post']),
-            'author' => $mapper->belongsTo($entity, 'SpotTest\Entity\Author', 'author_id')
+            'author' => $mapper->belongsTo($entity, 'SpotTest\Entity\Author', 'author_id'),
         ];
     }
 
-    public static function events(EventEmitter $eventEmitter)
+    public static function events(EventEmitter $eventEmitter): void
     {
         // This is done only to allow events to be set dynamically in a very
         // specific way for testing purposes. You probably don't want to do
@@ -56,12 +59,12 @@ class Post extends Entity
         }
     }
 
-    public static function scopes()
+    public static function scopes(): array
     {
         return [
             'active' => function (Query $query) {
                 return $query->where(['status' => 1]);
-            }
+            },
         ];
     }
 

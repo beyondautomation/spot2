@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 /**
@@ -8,15 +11,15 @@ namespace SpotTest\Entity;
  */
 class CustomMethods extends \Spot\Entity
 {
-    protected static $table = 'test_custom_methods';
+    protected static ?string $table = 'test_custom_methods';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id' => ['type' => 'integer', 'primary' => true, 'autoincrement' => true],
             'test1' => ['type' => 'text'],
             'test2' => ['type' => 'text'],
-            'test3' => ['type' => 'text']
+            'test3' => ['type' => 'text'],
         ];
     }
 
@@ -29,6 +32,7 @@ class CustomMethods extends \Spot\Entity
     public function setTest2($value)
     {
         $this->test3 = $value . '_copy';
+
         return $value;
     }
 

@@ -1,6 +1,16 @@
+# Dependencies
+/vendor/
+
+# Tooling caches
+/.php-cs-fixer.cache
+/.phpstan/
+/.rector-cache/
+
+# Coverage reports
+/coverage/
+
+# IDE / OS
 .DS_Store
-composer.phar
-composer.lock
-vendor
-tests/spot_test.sqlite
-.idea
+.idea/
+.vscode/
+*.swp

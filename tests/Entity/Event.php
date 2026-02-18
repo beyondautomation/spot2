@@ -1,9 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\EntityInterface;
-use Spot\MapperInterface;
 use Spot\EventEmitter;
+use Spot\MapperInterface;
 
 /**
  * Post
@@ -12,12 +15,12 @@ use Spot\EventEmitter;
  */
 class Event extends \Spot\Entity
 {
-    protected static $table = 'test_events';
+    protected static ?string $table = 'test_events';
 
     // Use a custom mapper for this object
-    protected static $mapper = 'SpotTest\Mapper\Event';
+    protected static string|false $mapper = 'SpotTest\Mapper\Event';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id' => ['type' => 'integer', 'primary' => true, 'autoincrement' => true],
@@ -26,30 +29,30 @@ class Event extends \Spot\Entity
             'type' => ['type' => 'string', 'required' => true, 'options' => [
                 'free', // 'Free',
                 'private', // 'Private (Ticket Required)'
-                'vip' // 'VIPs only'
+                'vip', // 'VIPs only'
             ]],
             'token' => ['type' => 'string', 'required' => true],
             'date_start' => ['type' => 'datetime', 'required' => true, 'validation' => [
-                'dateAfter' => new \DateTime('-1 second')
+                'dateAfter' => new \DateTime('-1 second'),
             ]],
             'status' => ['type' => 'string', 'default' => 1, 'options' => [
                 0, // 'Inactive'
                 1, // 'Active'
-                2 // 'Archived'
+                2, // 'Archived'
             ]],
-            'date_created' => ['type' => 'datetime']
+            'date_created' => ['type' => 'datetime'],
         ];
     }
 
-    public static function relations(MapperInterface $mapper, EntityInterface $entity)
+    public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
             'search' => $mapper->hasOne($entity, 'SpotTest\Entity\Event\Search', 'event_id'),
-            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'event'])
+            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'event']),
         ];
     }
 
-    public static function events(EventEmitter $eventEmitter)
+    public static function events(EventEmitter $eventEmitter): void
     {
         $eventEmitter->on('beforeInsert', function ($entity, $mapper) {
             $entity->token = uniqid();
@@ -59,11 +62,11 @@ class Event extends \Spot\Entity
             $mapper = test_spot_mapper('SpotTest\Entity\Event\Search');
             $result = $mapper->create([
                 'event_id' => $entity->id,
-                'body'     => $entity->title . ' ' . $entity->description
+                'body'     => $entity->title . ' ' . $entity->description,
             ]);
 
             if (!$result) {
-                throw new \Spot\Exception("Event search index entity failed to save!");
+                throw new \Spot\Exception('Event search index entity failed to save!');
             }
         });
     }

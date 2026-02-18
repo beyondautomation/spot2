@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Mapper;
 
 use Spot\Mapper;
@@ -8,10 +11,8 @@ class Event extends Mapper
 {
     /**
      * Custom scopes applied to Spot\Query
-     *
-     * @return array
      */
-    public function scopes()
+    public function scopes(): array
     {
         return [
             'free' => function (Query $query) {
@@ -19,7 +20,7 @@ class Event extends Mapper
             },
             'active' => function (Query $query) {
                 return $query->where(['status' => 1]);
-            }
+            },
         ];
     }
 

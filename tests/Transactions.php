@@ -1,14 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Transactions extends \PHPUnit_Framework_TestCase
+class Transactions extends \PHPUnit\Framework\TestCase
 {
     private static $entities = ['Post', 'Author'];
 
-    public static function setupBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
@@ -19,16 +22,16 @@ class Transactions extends \PHPUnit_Framework_TestCase
             'id' => 1,
             'email' => 'example@example.com',
             'password' => 't00r',
-            'is_admin' => false
+            'is_admin' => false,
         ]);
         $result = $authorMapper->insert($author);
 
         if (!$result) {
-            throw new \Exception("Unable to create author: " . var_export($author->data(), true));
+            throw new \Exception('Unable to create author: ' . var_export($author->data(), true));
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->dropTable();
@@ -39,8 +42,8 @@ class Transactions extends \PHPUnit_Framework_TestCase
     {
         $post = new \SpotTest\Entity\Post();
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
-        $post->title = "Test Post with Transaction";
-        $post->body = "<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>";
+        $post->title = 'Test Post with Transaction';
+        $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 
@@ -57,8 +60,8 @@ class Transactions extends \PHPUnit_Framework_TestCase
     {
         $post = new \SpotTest\Entity\Post();
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
-        $post->title = "Rolledback";
-        $post->body = "<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>";
+        $post->title = 'Rolledback';
+        $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 
@@ -70,7 +73,7 @@ class Transactions extends \PHPUnit_Framework_TestCase
                 $result = $mapper->insert($post);
 
                 // Throw exception AFTER save to trigger rollback
-                throw new \LogicException("Exceptions should trigger auto-rollback");
+                throw new \LogicException('Exceptions should trigger auto-rollback');
             });
         } catch (\LogicException $e) {
             // Ensure record was NOT saved
@@ -82,8 +85,8 @@ class Transactions extends \PHPUnit_Framework_TestCase
     {
         $post = new \SpotTest\Entity\Post();
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
-        $post->title = "Rolledback";
-        $post->body = "<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>";
+        $post->title = 'Rolledback';
+        $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 

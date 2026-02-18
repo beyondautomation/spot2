@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Locator extends \PHPUnit_Framework_TestCase
+class Locator extends \PHPUnit\Framework\TestCase
 {
     public function testGetConfig()
     {

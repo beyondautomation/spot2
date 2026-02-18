@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class Mapper extends \PHPUnit_Framework_TestCase
+class Mapper extends \PHPUnit\Framework\TestCase
 {
     public function testGetGenericMapper()
     {

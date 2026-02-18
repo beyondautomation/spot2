@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\Entity;
@@ -10,9 +13,9 @@ use Spot\Entity;
  */
 class NoSerial extends \Spot\Entity
 {
-    protected static $table = 'test_noserial';
+    protected static ?string $table = 'test_noserial';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id'    => ['type' => 'integer', 'primary' => true],

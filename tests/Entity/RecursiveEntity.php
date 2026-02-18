@@ -1,9 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace SpotTest\Entity;
 
 use Spot\Entity;
-use Spot\MapperInterface;
 use Spot\EntityInterface;
+use Spot\MapperInterface;
 
 /**
  * RecursiveEntity
@@ -12,14 +15,14 @@ use Spot\EntityInterface;
  */
 class RecursiveEntity extends Entity
 {
-    protected static $table = 'test_recursive';
+    protected static ?string $table = 'test_recursive';
 
-    public static function fields()
+    public static function fields(): array
     {
         return [
             'id' => [
                 'type' => 'integer', 'primary' => true, 'autoincrement' => true,
-                'form' => false
+                'form' => false,
             ],
             'priority' => [
                 'type' => 'integer', 'index' => true,
@@ -37,24 +40,24 @@ class RecursiveEntity extends Entity
                 'validation' => ['lengthMax' => 255],
             ],
             'description' => [
-                'type' => 'text'
+                'type' => 'text',
             ],
             'parent_id' => [
                 'type' => 'integer', 'index' => true,
             ],
             'siblingId' => [
-                'type' => 'integer', 'index' => true, 'column' => 'sibling_id'
+                'type' => 'integer', 'index' => true, 'column' => 'sibling_id',
             ],
         ];
     }
 
-    public static function relations(MapperInterface $mapper, EntityInterface $entity)
+    public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
             'children' => $mapper->hasMany($entity, 'SpotTest\Entity\RecursiveEntity', 'parent_id'),
             'parent' => $mapper->belongsTo($entity, 'SpotTest\Entity\RecursiveEntity', 'parent_id'),
             'my_sibling' => $mapper->belongsTo($entity, 'SpotTest\Entity\RecursiveEntity', 'siblingId'),
-            'sibling' => $mapper->hasOne($entity, 'SpotTest\Entity\RecursiveEntity', 'siblingId')
+            'sibling' => $mapper->hasOne($entity, 'SpotTest\Entity\RecursiveEntity', 'siblingId'),
         ];
     }
 }

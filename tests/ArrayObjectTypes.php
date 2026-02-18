@@ -1,29 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SpotTest;
 
 /**
  * @package Spot
  */
-class ArrayObjectTypes extends \PHPUnit_Framework_TestCase
+class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
 {
-
-    /**
-     * The basic entity for these tests
-     * @return \SpotTest\Entity\ArrayObjectType
-     */
-    private function getEntity()
-    {    
-        $entity = new \SpotTest\Entity\ArrayObjectType([
-            'fld_array' => ['value' => 'original'],
-            'fld_simple_array' => ['value' => 'original'],
-            'fld_json_array' => ['value' => 'original'],
-            'fld_object' => (object) ['value' => 'original']
-        ]);
-
-        return $entity;
-    }
-
     public function testArray()
     {
         $entity = $this->getEntity();
@@ -56,4 +41,20 @@ class ArrayObjectTypes extends \PHPUnit_Framework_TestCase
         $this->assertTrue($entity->isModified('fld_object'));
     }
 
+    /**
+     * The basic entity for these tests
+     *
+     * @return \SpotTest\Entity\ArrayObjectType
+     */
+    private function getEntity()
+    {
+        $entity = new \SpotTest\Entity\ArrayObjectType([
+            'fld_array' => ['value' => 'original'],
+            'fld_simple_array' => ['value' => 'original'],
+            'fld_json_array' => ['value' => 'original'],
+            'fld_object' => (object) ['value' => 'original'],
+        ]);
+
+        return $entity;
+    }
 }

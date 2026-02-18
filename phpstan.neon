@@ -1,0 +1,18 @@
+# PHPStan configuration for Spot2
+# Run: composer analyse
+
+parameters:
+    level: 8
+    paths:
+        - src
+    excludePaths:
+        - src/Provider/Laravel.php
+
+    # Suppress PHPDoc-driven "always true/false" noise from legacy FALSE sentinels
+    # in Config::parseDsn() and similar patterns.
+    treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        # new static() in Collection::filter() is intentional — subclasses return their own type.
+        - message: '#Unsafe usage of new static\(\)#'
+          path: src/Entity/Collection.php

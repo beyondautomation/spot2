@@ -463,7 +463,15 @@ abstract class Entity implements EntityInterface, \JsonSerializable
                     $v = & $this->_data[$field];
                 }
             } elseif ($relation = $this->relation($field)) {
-                $v = & $relation;
+                // Auto-execute BelongsTo/HasOne relations so accessing a relation field
+                // returns the resolved entity rather than the relation proxy object.
+                // HasMany/HasManyThrough return Collections and are left as-is.
+                if ($relation instanceof \Spot\Relation\BelongsTo || $relation instanceof \Spot\Relation\HasOne) {
+                    $executed = $relation->execute();
+                    $v = & $executed;
+                } else {
+                    $v = & $relation;
+                }
             }
         }
 

@@ -169,6 +169,18 @@ class Mapper implements MapperInterface
      */
     private static int $relationDepth = 0;
 
+    /**
+     * True while loadRelations() is executing. Models can check this flag in
+     * their relations() method to skip expensive ->with() sub-relation
+     * configuration during auto-loading, only applying it during explicit queries.
+     *
+     * Usage in a model:
+     *   if (!\Spot\Mapper::$loadingRelations) {
+     *       $rel->with(['subrelation']);
+     *   }
+     */
+    public static bool $loadingRelations = false;
+
     public function loadRelations(EntityInterface $entity): void
     {
         if (self::$relationDepth >= self::$maxRelationDepth) {
@@ -176,6 +188,7 @@ class Mapper implements MapperInterface
         }
 
         self::$relationDepth++;
+        self::$loadingRelations = true;
 
         try {
             $entityName = $this->entityName;
@@ -186,6 +199,10 @@ class Mapper implements MapperInterface
             }
         } finally {
             self::$relationDepth--;
+            // Only clear the flag when fully unwound
+            if (self::$relationDepth === 0) {
+                self::$loadingRelations = false;
+            }
         }
     }
 

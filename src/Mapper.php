@@ -544,7 +544,10 @@ class Mapper implements MapperInterface
         /** @var Entity\Collection $collection */
         $collection = new $this->_collectionClass($results, $resultsIdentities, $entityName);
 
-        if (empty($with) || count($collection) === 0) {
+        // Don't eager-load nested with() relations when already inside a relation
+        // load — prevents infinite recursion when relations define ->with([...])
+        // on sub-relations (e.g. ClientUser -> roles ->with(['permissions'])).
+        if (empty($with) || count($collection) === 0 || self::$relationDepth > 0) {
             return $collection;
         }
 

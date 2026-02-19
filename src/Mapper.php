@@ -167,7 +167,7 @@ class Mapper implements MapperInterface
      * that recursion through different mappers (e.g. Post → Author → Post) is
      * correctly detected even though each entity type has its own mapper.
      */
-    private static int $relationDepth = 0;
+    public static int $relationDepth = 0;
 
     /**
      * True while loadRelations() is executing. Models can check this flag in

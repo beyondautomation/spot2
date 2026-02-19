@@ -165,11 +165,27 @@ abstract class RelationAbstract
 
     /**
      * Execute the relation query and cache the result.
+     *
+     * Increments Mapper::$relationDepth while the query runs so that entities
+     * hydrated by this relation are treated as "depth 1". Their own relations()
+     * calls will see depth >= maxRelationDepth and skip loading sub-proxies,
+     * preventing the N-level cascade:
+     *   ClientUser(0) -> profile(1) -> country(0!) -> translations(1) -> OOM
+     * becomes:
+     *   ClientUser(0) -> profile(1) -> [country proxy registered but NOT executed]
+     * until Fractal explicitly accesses $profile->country, at which point depth
+     * is 0 again and country loads normally — but translations on CountryTranslation
+     * entities are then at depth 1 and are skipped (lazy proxies only).
      */
     public function execute(): mixed
     {
         if ($this->result === null) {
-            $this->result = $this->query()->execute();
+            Mapper::$relationDepth++;
+            try {
+                $this->result = $this->query()->execute();
+            } finally {
+                Mapper::$relationDepth--;
+            }
         }
 
         return $this->result;

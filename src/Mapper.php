@@ -153,10 +153,6 @@ class Mapper implements MapperInterface
     }
 
     /**
-     * Load all defined relations onto the entity.
-     */
-    #[\Override]
-    /**
      * Maximum relation nesting depth. Relations at this depth and beyond are
      * registered as lazy proxies but their own relations are not loaded,
      * preventing infinite recursion when related entities have back-references.

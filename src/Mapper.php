@@ -561,10 +561,14 @@ class Mapper implements MapperInterface
         /** @var Entity\Collection $collection */
         $collection = new $this->_collectionClass($results, $resultsIdentities, $entityName);
 
-        // Don't eager-load nested with() relations when already inside a relation
-        // load — prevents infinite recursion when relations define ->with([...])
-        // on sub-relations (e.g. ClientUser -> roles ->with(['permissions'])).
-        if (empty($with) || count($collection) === 0 || self::$relationDepth > 0) {
+        // Don't eager-load with() relations when inside loadRelations() hydration.
+        // $loadingRelations is true only during the loadRelations() call itself,
+        // NOT during explicit relation execute() calls. This allows models that
+        // define ->with(['sub_relation']) on a relation proxy to still have those
+        // sub-relations batch-loaded when the relation is explicitly accessed
+        // (e.g. $template->itr_template_pages->itr_page), while still preventing
+        // the old infinite recursion problem during entity hydration.
+        if (empty($with) || count($collection) === 0 || self::$loadingRelations) {
             return $collection;
         }
 

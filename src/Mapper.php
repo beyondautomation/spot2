@@ -1263,6 +1263,17 @@ class Mapper implements MapperInterface
      *
      * @throws Exception On invalid relation names or object types.
      */
+    /**
+     * Eager-load relations onto a collection.
+     *
+     * Supports dot-notation for nested eager loading, e.g.:
+     *   ->with(['profile', 'profile.country', 'profile.country.translations'])
+     *
+     * Each level is loaded in a single batch query regardless of collection size,
+     * avoiding N+1 problems when Fractal (or other consumers) iterate sub-relations.
+     *
+     * @param array<string> $with Relation names, optionally dot-separated for nesting.
+     */
     protected function with(Entity\Collection $collection, string $entityName, array $with = []): Entity\Collection
     {
         $eventEmitter = $this->eventEmitter();
@@ -1271,7 +1282,29 @@ class Mapper implements MapperInterface
             return $collection;
         }
 
-        foreach ($with as $relationName) {
+        // Separate top-level relations from nested dot-notation ones.
+        // e.g. ['profile', 'profile.country', 'profile.country.translations']
+        // becomes: top = ['profile'], nested = ['profile' => ['country', 'country.translations']]
+        $topLevel = [];
+        $nested   = [];
+
+        foreach ($with as $relationPath) {
+            if (strpos($relationPath, '.') === false) {
+                $topLevel[] = $relationPath;
+            } else {
+                [$parent, $rest] = explode('.', $relationPath, 2);
+                $nested[$parent][] = $rest;
+            }
+        }
+
+        // Ensure every parent of a nested path is also in topLevel
+        foreach (array_keys($nested) as $parent) {
+            if (!in_array($parent, $topLevel, true)) {
+                $topLevel[] = $parent;
+            }
+        }
+
+        foreach ($topLevel as $relationName) {
             $singleEntity = $collection->first();
 
             if (!($singleEntity instanceof Entity)) {
@@ -1302,6 +1335,49 @@ class Mapper implements MapperInterface
             }
 
             $collection = $relationObject->eagerLoadOnCollection($relationName, $collection);
+
+            // If there are nested sub-relations for this parent, collect the related
+            // entities from the now-hydrated collection and recursively eager-load them.
+            if (!empty($nested[$relationName])) {
+                // Build a sub-collection of all related entities for this relation
+                $relatedEntities = [];
+                foreach ($collection as $entity) {
+                    $related = $entity->relation($relationName);
+                    if ($related instanceof EntityInterface) {
+                        $relatedEntities[] = $related;
+                    } elseif ($related instanceof Entity\Collection) {
+                        foreach ($related as $r) {
+                            $relatedEntities[] = $r;
+                        }
+                    }
+                }
+
+                if (!empty($relatedEntities)) {
+                    $relatedEntityName = get_class($relatedEntities[0]);
+                    // Deduplicate by primary key to avoid loading same entity twice
+                    $seen = [];
+                    $unique = [];
+                    $relatedMapper = $this->getMapper($relatedEntityName);
+                    $pkField = $relatedMapper->primaryKeyField();
+                    foreach ($relatedEntities as $r) {
+                        $pk = $r->$pkField;
+                        if ($pk !== null && isset($seen[$pk])) {
+                            continue;
+                        }
+                        $seen[$pk] = true;
+                        $unique[] = $r;
+                    }
+
+                    $subCollection = new $this->_collectionClass(
+                        $unique,
+                        array_keys($seen),
+                        $relatedEntityName
+                    );
+
+                    // Recursively eager-load sub-relations on the related collection
+                    $relatedMapper->with($subCollection, $relatedEntityName, $nested[$relationName]);
+                }
+            }
         }
 
         $eventEmitter->emit('afterWith', [$this, $collection, $with]);

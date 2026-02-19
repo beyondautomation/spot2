@@ -55,45 +55,6 @@ class BelongsTo extends RelationAbstract implements \ArrayAccess
     }
 
     /**
-     * Eager-load this BelongsTo relation onto a collection of parent entities.
-     *
-     * The base class implementation is designed for HasMany (wrong key direction).
-     * For BelongsTo (e.g. template_page.page_id -> pages.id):
-     *   - We fetch all related entities WHERE pk IN (list of FK values from parents)
-     *   - Index results by their PRIMARY KEY (pages.id)
-     *   - For each parent, look up by its FK value (template_page.page_id)
-     */
-    #[\Override]
-    public function eagerLoadOnCollection(string $relationName, Collection $collection): Collection
-    {
-        $this->identityValuesFromCollection($collection);
-
-        $relatedMapper  = $this->mapper()->getMapper($this->entityName());
-        $relatedPkField = $relatedMapper->primaryKeyField();
-        $localKeyField  = $this->localKey();   // FK on parent entity (e.g. page_id)
-
-        // Fetch all related entities in one query
-        $relatedEntities = [];
-        foreach ($this->query() as $relatedEntity) {
-            // Index by the related entity's primary key
-            $relatedEntities[$relatedEntity->$relatedPkField] = $relatedEntity;
-        }
-
-        // Map back onto each parent entity
-        foreach ($collection as $entity) {
-            $fkValue = $entity->$localKeyField;
-
-            if ($fkValue !== null && isset($relatedEntities[$fkValue])) {
-                $entity->relation($relationName, $relatedEntities[$fkValue]);
-            } else {
-                $entity->relation($relationName, null);
-            }
-        }
-
-        return $collection;
-    }
-
-    /**
      * For BelongsTo, the entity key is the local key (not the primary key).
      */
     #[\Override]

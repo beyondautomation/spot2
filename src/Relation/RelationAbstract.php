@@ -36,12 +36,6 @@ abstract class RelationAbstract
     /**
      * Passthrough for missing methods — delegates to Query then to the result object.
      *
-     * When Mapper::$loadingRelations is true (i.e. we are inside loadRelations()
-     * hydrating entities from the database), all query-modifier calls such as
-     * ->where(), ->order(), ->limit(), and ->with() are silently ignored.
-     * This prevents hundreds of closure objects being allocated per entity when
-     * models define complex query chains in their relations() method.
-     *
      * @param array<mixed> $args
      */
     public function __call(string $func, array $args): mixed
@@ -49,16 +43,12 @@ abstract class RelationAbstract
         $scopes = $this->mapper()->getMapper($this->entityName())->scopes();
 
         if (method_exists(Query::class, $func) || array_key_exists($func, $scopes)) {
-            // Skip queuing query modifiers during entity hydration — no closures,
-            // no memory accumulation, no sub-relation cascades.
-            if (!\Spot\Mapper::$loadingRelations) {
-                $this->queryQueue[] = function (Query $query) use ($func, $args): Query {
-                    /** @var callable(mixed...): Query $callable */
-                    $callable = [$query, $func];
+            $this->queryQueue[] = function (Query $query) use ($func, $args): Query {
+                /** @var callable(mixed...): Query $callable */
+                $callable = [$query, $func];
 
-                    return $callable(...$args);
-                };
-            }
+                return $callable(...$args);
+            };
 
             return $this;
         }
@@ -165,27 +155,11 @@ abstract class RelationAbstract
 
     /**
      * Execute the relation query and cache the result.
-     *
-     * Increments Mapper::$relationDepth while the query runs so that entities
-     * hydrated by this relation are treated as "depth 1". Their own relations()
-     * calls will see depth >= maxRelationDepth and skip loading sub-proxies,
-     * preventing the N-level cascade:
-     *   ClientUser(0) -> profile(1) -> country(0!) -> translations(1) -> OOM
-     * becomes:
-     *   ClientUser(0) -> profile(1) -> [country proxy registered but NOT executed]
-     * until Fractal explicitly accesses $profile->country, at which point depth
-     * is 0 again and country loads normally — but translations on CountryTranslation
-     * entities are then at depth 1 and are skipped (lazy proxies only).
      */
     public function execute(): mixed
     {
         if ($this->result === null) {
-            Mapper::$relationDepth++;
-            try {
-                $this->result = $this->query()->execute();
-            } finally {
-                Mapper::$relationDepth--;
-            }
+            $this->result = $this->query()->execute();
         }
 
         return $this->result;

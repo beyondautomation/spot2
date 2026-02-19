@@ -153,56 +153,16 @@ class Mapper implements MapperInterface
     }
 
     /**
-     * Maximum relation nesting depth. Relations at this depth and beyond are
-     * registered as lazy proxies but their own relations are not loaded,
-     * preventing infinite recursion when related entities have back-references.
-     *
-     * Depth 1 = direct relations of the loaded entity are registered (default).
-     * Set to 0 to disable all automatic relation loading.
+     * Load all defined relations onto the entity.
      */
-    public static int $maxRelationDepth = 1;
-
-    /**
-     * Tracks the current nesting depth across all mapper instances. Static so
-     * that recursion through different mappers (e.g. Post → Author → Post) is
-     * correctly detected even though each entity type has its own mapper.
-     */
-    public static int $relationDepth = 0;
-
-    /**
-     * True while loadRelations() is executing. Models can check this flag in
-     * their relations() method to skip expensive ->with() sub-relation
-     * configuration during auto-loading, only applying it during explicit queries.
-     *
-     * Usage in a model:
-     *   if (!\Spot\Mapper::$loadingRelations) {
-     *       $rel->with(['subrelation']);
-     *   }
-     */
-    public static bool $loadingRelations = false;
-
+    #[\Override]
     public function loadRelations(EntityInterface $entity): void
     {
-        if (self::$relationDepth >= self::$maxRelationDepth) {
-            return;
-        }
+        $entityName = $this->entityName;
+        $relations  = $entityName::relations($this, $entity);
 
-        self::$relationDepth++;
-        self::$loadingRelations = true;
-
-        try {
-            $entityName = $this->entityName;
-            $relations  = $entityName::relations($this, $entity);
-
-            foreach ($relations as $relationName => $relation) {
-                $entity->relation($relationName, $relation);
-            }
-        } finally {
-            self::$relationDepth--;
-            // Only clear the flag when fully unwound
-            if (self::$relationDepth === 0) {
-                self::$loadingRelations = false;
-            }
+        foreach ($relations as $relationName => $relation) {
+            $entity->relation($relationName, $relation);
         }
     }
 
@@ -561,14 +521,7 @@ class Mapper implements MapperInterface
         /** @var Entity\Collection $collection */
         $collection = new $this->_collectionClass($results, $resultsIdentities, $entityName);
 
-        // Don't eager-load with() relations when inside loadRelations() hydration.
-        // $loadingRelations is true only during the loadRelations() call itself,
-        // NOT during explicit relation execute() calls. This allows models that
-        // define ->with(['sub_relation']) on a relation proxy to still have those
-        // sub-relations batch-loaded when the relation is explicitly accessed
-        // (e.g. $template->itr_template_pages->itr_page), while still preventing
-        // the old infinite recursion problem during entity hydration.
-        if (empty($with) || count($collection) === 0 || self::$loadingRelations) {
+        if (empty($with) || count($collection) === 0) {
             return $collection;
         }
 
@@ -1267,17 +1220,6 @@ class Mapper implements MapperInterface
      *
      * @throws Exception On invalid relation names or object types.
      */
-    /**
-     * Eager-load relations onto a collection.
-     *
-     * Supports dot-notation for nested eager loading, e.g.:
-     *   ->with(['profile', 'profile.country', 'profile.country.translations'])
-     *
-     * Each level is loaded in a single batch query regardless of collection size,
-     * avoiding N+1 problems when Fractal (or other consumers) iterate sub-relations.
-     *
-     * @param array<string> $with Relation names, optionally dot-separated for nesting.
-     */
     protected function with(Entity\Collection $collection, string $entityName, array $with = []): Entity\Collection
     {
         $eventEmitter = $this->eventEmitter();
@@ -1286,29 +1228,7 @@ class Mapper implements MapperInterface
             return $collection;
         }
 
-        // Separate top-level relations from nested dot-notation ones.
-        // e.g. ['profile', 'profile.country', 'profile.country.translations']
-        // becomes: top = ['profile'], nested = ['profile' => ['country', 'country.translations']]
-        $topLevel = [];
-        $nested   = [];
-
-        foreach ($with as $relationPath) {
-            if (strpos($relationPath, '.') === false) {
-                $topLevel[] = $relationPath;
-            } else {
-                [$parent, $rest] = explode('.', $relationPath, 2);
-                $nested[$parent][] = $rest;
-            }
-        }
-
-        // Ensure every parent of a nested path is also in topLevel
-        foreach (array_keys($nested) as $parent) {
-            if (!in_array($parent, $topLevel, true)) {
-                $topLevel[] = $parent;
-            }
-        }
-
-        foreach ($topLevel as $relationName) {
+        foreach ($with as $relationName) {
             $singleEntity = $collection->first();
 
             if (!($singleEntity instanceof Entity)) {
@@ -1339,49 +1259,6 @@ class Mapper implements MapperInterface
             }
 
             $collection = $relationObject->eagerLoadOnCollection($relationName, $collection);
-
-            // If there are nested sub-relations for this parent, collect the related
-            // entities from the now-hydrated collection and recursively eager-load them.
-            if (!empty($nested[$relationName])) {
-                // Build a sub-collection of all related entities for this relation
-                $relatedEntities = [];
-                foreach ($collection as $entity) {
-                    $related = $entity->relation($relationName);
-                    if ($related instanceof EntityInterface) {
-                        $relatedEntities[] = $related;
-                    } elseif ($related instanceof Entity\Collection) {
-                        foreach ($related as $r) {
-                            $relatedEntities[] = $r;
-                        }
-                    }
-                }
-
-                if (!empty($relatedEntities)) {
-                    $relatedEntityName = get_class($relatedEntities[0]);
-                    // Deduplicate by primary key to avoid loading same entity twice
-                    $seen = [];
-                    $unique = [];
-                    $relatedMapper = $this->getMapper($relatedEntityName);
-                    $pkField = $relatedMapper->primaryKeyField();
-                    foreach ($relatedEntities as $r) {
-                        $pk = $r->$pkField;
-                        if ($pk !== null && isset($seen[$pk])) {
-                            continue;
-                        }
-                        $seen[$pk] = true;
-                        $unique[] = $r;
-                    }
-
-                    $subCollection = new $this->_collectionClass(
-                        $unique,
-                        array_keys($seen),
-                        $relatedEntityName
-                    );
-
-                    // Recursively eager-load sub-relations on the related collection
-                    $relatedMapper->with($subCollection, $relatedEntityName, $nested[$relationName]);
-                }
-            }
         }
 
         $eventEmitter->emit('afterWith', [$this, $collection, $with]);

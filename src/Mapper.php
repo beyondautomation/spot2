@@ -156,13 +156,40 @@ class Mapper implements MapperInterface
      * Load all defined relations onto the entity.
      */
     #[\Override]
+    /**
+     * Maximum relation nesting depth. Relations at this depth and beyond are
+     * registered as lazy proxies but their own relations are not loaded,
+     * preventing infinite recursion when related entities have back-references.
+     *
+     * Depth 1 = direct relations of the loaded entity are registered (default).
+     * Set to 0 to disable all automatic relation loading.
+     */
+    public static int $maxRelationDepth = 1;
+
+    /**
+     * Tracks the current nesting depth across all mapper instances. Static so
+     * that recursion through different mappers (e.g. Post → Author → Post) is
+     * correctly detected even though each entity type has its own mapper.
+     */
+    private static int $relationDepth = 0;
+
     public function loadRelations(EntityInterface $entity): void
     {
-        $entityName = $this->entityName;
-        $relations  = $entityName::relations($this, $entity);
+        if (self::$relationDepth >= self::$maxRelationDepth) {
+            return;
+        }
 
-        foreach ($relations as $relationName => $relation) {
-            $entity->relation($relationName, $relation);
+        self::$relationDepth++;
+
+        try {
+            $entityName = $this->entityName;
+            $relations  = $entityName::relations($this, $entity);
+
+            foreach ($relations as $relationName => $relation) {
+                $entity->relation($relationName, $relation);
+            }
+        } finally {
+            self::$relationDepth--;
         }
     }
 

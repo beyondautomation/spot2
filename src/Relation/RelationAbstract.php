@@ -36,6 +36,12 @@ abstract class RelationAbstract
     /**
      * Passthrough for missing methods — delegates to Query then to the result object.
      *
+     * When Mapper::$loadingRelations is true (i.e. we are inside loadRelations()
+     * hydrating entities from the database), all query-modifier calls such as
+     * ->where(), ->order(), ->limit(), and ->with() are silently ignored.
+     * This prevents hundreds of closure objects being allocated per entity when
+     * models define complex query chains in their relations() method.
+     *
      * @param array<mixed> $args
      */
     public function __call(string $func, array $args): mixed
@@ -43,12 +49,16 @@ abstract class RelationAbstract
         $scopes = $this->mapper()->getMapper($this->entityName())->scopes();
 
         if (method_exists(Query::class, $func) || array_key_exists($func, $scopes)) {
-            $this->queryQueue[] = function (Query $query) use ($func, $args): Query {
-                /** @var callable(mixed...): Query $callable */
-                $callable = [$query, $func];
+            // Skip queuing query modifiers during entity hydration — no closures,
+            // no memory accumulation, no sub-relation cascades.
+            if (!\Spot\Mapper::$loadingRelations) {
+                $this->queryQueue[] = function (Query $query) use ($func, $args): Query {
+                    /** @var callable(mixed...): Query $callable */
+                    $callable = [$query, $func];
 
-                return $callable(...$args);
-            };
+                    return $callable(...$args);
+                };
+            }
 
             return $this;
         }

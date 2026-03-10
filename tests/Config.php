@@ -7,6 +7,7 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Config extends \PHPUnit\Framework\TestCase
 {
     public function testAddConnectionSqlite()

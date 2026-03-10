@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class CRUD extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PolymorphicComment', 'PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Setting', 'Event\Search', 'Event'];
+    private static array $entities = ['PolymorphicComment', 'PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Setting', 'Event\Search', 'Event'];
 
     public static function setUpBeforeClass(): void
     {
@@ -320,9 +321,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertTrue((bool) $result);
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasOneNewEntitySaveRelation()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event');
@@ -351,9 +350,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertEquals($queryHasOne->first()->get('body'), 'body2');
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasOneRelatedEntityAlreadyExists()
     {
 
@@ -382,9 +379,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertEquals($savedEvent->search->body, $search2->body);
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasOneIgnoreRelationNotLoaded()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event');
@@ -405,9 +400,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
 
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testBelongsToNewEntitySaveRelation()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -430,9 +423,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertEquals($post->author_id, $author2->id);
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasManyNewEntitySaveRelation()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -474,9 +465,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         }
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasManyExistingEntitySaveRelation()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -505,9 +494,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertTrue(count($post->comments) === 2);
     }
 
-    /**
-     * @group save-relations
-     */
+    #[\PHPUnit\Framework\Attributes\Group('save-relations')]
     public function testHasManyThroughRelationSave()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -548,9 +535,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertEquals($postTagMapper->all()->count(), 0);
     }
 
-    /**
-     * @depends testSampleNewsInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testSampleNewsInsert')]
     public function testQueryWithDateTimeObjectValue($post)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');

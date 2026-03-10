@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
          bootstrap="./tests/init.php"
          colors="true"
-         stopOnFailure="false">
+         stopOnFailure="false"
+         requireCoverageMetadata="false"
+         beStrictAboutCoverageMetadata="false">
 
     <php>
         <env name="SPOT_DB_TYPE" value="pgsql"/>
@@ -16,6 +18,11 @@
             <directory suffix=".php">./tests</directory>
             <exclude>./tests/SchemaQuerySql.php</exclude>
             <exclude>./tests/Entity</exclude>
+            <exclude>./tests/Bootstrap.php</exclude>
+            <exclude>./tests/init.php</exclude>
+            <exclude>./tests/DriverSpecific.php</exclude>
+            <exclude>./tests/Mapper/Event.php</exclude>
+            <exclude>./tests/Type/Encrypted.php</exclude>
         </testsuite>
     </testsuites>
 

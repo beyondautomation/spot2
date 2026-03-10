@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class RelationsEagerLoading extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Event\Search', 'Event'];
+    private static array $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Event\Search', 'Event'];
 
     public static function setUpBeforeClass(): void
     {

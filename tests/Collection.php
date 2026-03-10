@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Collection extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Tag'];
+    private static array $entities = ['Tag'];
 
     public static function setUpBeforeClass(): void
     {

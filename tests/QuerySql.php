@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class QuerySql extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author'];
+    private static array $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author'];
 
     public static function setUpBeforeClass(): void
     {
@@ -469,9 +470,7 @@ class QuerySql extends \PHPUnit\Framework\TestCase
         $this->assertSame($postCount, $i);
     }
 
-    /**
-     * @dataProvider identifierProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('identifierProvider')]
     public function testEscapingIdentifier($identifier, $expected)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');

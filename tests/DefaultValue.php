@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class DefaultValue extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['DefaultValue'];
+    private static array $entities = ['DefaultValue'];
 
     public static function setUpBeforeClass(): void
     {

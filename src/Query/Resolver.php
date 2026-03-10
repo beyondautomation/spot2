@@ -81,6 +81,52 @@ class Resolver
                 $comparator    = $schemaManager->createComparator();
                 $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
                 $queries       = $connection->getDatabasePlatform()->getAlterSchemaSQL($schemaDiff);
+
+                // DBAL4 schema comparator generates destructive DDL when the current DB
+                // schema has objects not present in the entity definition. This includes
+                // standalone DROP TABLE/INDEX statements AND ALTER TABLE ... DROP COLUMN /
+                // DROP FOREIGN KEY / DROP INDEX clauses mixed into the same ALTER statement.
+                // migrate() must never destroy data — it is strictly additive.
+                $safeQueries = [];
+
+                foreach ($queries as $sql) {
+                    // Reject standalone DROP statements entirely (DROP TABLE, DROP INDEX, etc.)
+                    if (preg_match('/^\s*DROP\s+/i', $sql)) {
+                        continue;
+                    }
+
+                    // For ALTER TABLE statements, strip individual DROP clauses while
+                    // preserving any ADD / MODIFY / CHANGE clauses in the same statement.
+                    if (preg_match('/^\s*ALTER\s+TABLE\s+/i', $sql) && preg_match('/\bDROP\b/i', $sql)) {
+                        // Extract the table name prefix, e.g. "ALTER TABLE `statuses`"
+                        preg_match('/^\s*(ALTER\s+TABLE\s+\S+)\s+/i', $sql, $m);
+                        $prefix = $m[1] ?? null;
+
+                        if ($prefix === null) {
+                            continue; // can't parse safely, skip entirely
+                        }
+
+                        // Split comma-separated clauses after the table name.
+                        $rest    = substr($sql, strlen($m[0]));
+                        $clauses = preg_split('/,\s*(?=[A-Z])/i', $rest) ?: [$rest];
+
+                        $safeClauses = array_filter(
+                            $clauses,
+                            static fn (string $clause) => !preg_match('/^\s*DROP\b/i', trim($clause)),
+                        );
+
+                        if ($safeClauses === []) {
+                            continue; // nothing left after stripping DROP clauses
+                        }
+
+                        $safeQueries[] = $prefix . ' ' . implode(', ', $safeClauses);
+                        continue;
+                    }
+
+                    $safeQueries[] = $sql;
+                }
+
+                $queries = $safeQueries;
             } else {
                 $newSchema = $this->migrateCreateSchema();
                 $queries   = $newSchema->toSql($connection->getDatabasePlatform());
@@ -122,6 +168,20 @@ class Resolver
             // Only scalar values can be SQL column defaults; objects/arrays are PHP-level only.
             if (isset($field['value']) && !isset($field['default']) && is_scalar($field['value'])) {
                 $field['default'] = $field['value'];
+            }
+
+            // DBAL4 changed the default length for 'string' columns from 255 to 65535.
+            // MySQL with utf8mb4 allows a maximum VARCHAR length of 16383 characters.
+            // Any string column without an explicit length, or with a length above the
+            // MySQL utf8mb4 VARCHAR limit, is promoted to 'text' — matching DBAL2 behaviour
+            // and preventing "Column length too big" errors on ALTER TABLE.
+            if ($fieldType === 'string') {
+                $length = $field['length'] ?? null;
+
+                if ($length === null || $length > 16383) {
+                    $fieldType = 'text';
+                    unset($field['length']); // TEXT columns do not accept a length option
+                }
             }
 
             // DBAL4 Column rejects unknown options. Keep only recognised DBAL column options.

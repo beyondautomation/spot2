@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Entity extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Post', 'Author', 'CustomMethods'];
+    private static array $entities = ['Post', 'Author', 'CustomMethods'];
 
     public static function setUpBeforeClass(): void
     {

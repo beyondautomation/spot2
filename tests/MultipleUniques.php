@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class MultipleUniques extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['MultipleUniques'];
+    private static array $entities = ['MultipleUniques'];
 
     public static function setUpBeforeClass(): void
     {

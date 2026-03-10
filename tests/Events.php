@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Events extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author'];
+    private static array $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author'];
 
     public static function setUpBeforeClass(): void
     {

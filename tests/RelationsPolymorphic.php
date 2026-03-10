@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PolymorphicComment', 'Post', 'Author', 'Event\Search', 'Event'];
+    private static array $entities = ['PolymorphicComment', 'Post', 'Author', 'Event\Search', 'Event'];
 
     public static function setUpBeforeClass(): void
     {

@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class ForeignKeys extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Author', 'Post', 'RecursiveEntity'];
+    private static array $entities = ['Author', 'Post', 'RecursiveEntity'];
 
     public static function setUpBeforeClass(): void
     {

@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Validation extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Author', 'Report'];
+    private static array $entities = ['Author', 'Report'];
 
     public static function setUpBeforeClass(): void
     {
@@ -133,6 +134,7 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertFalse($entity->hasErrors());
     }
 
+    #[\PHPUnit\Framework\Attributes\IgnoreDeprecations]
     public function testHasOneRelationValidation()
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event');

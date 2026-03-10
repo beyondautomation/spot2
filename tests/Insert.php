@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Insert extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Post', 'Author', 'Event\Search', 'Event', 'NoSerial'];
+    private static array $entities = ['Post', 'Author', 'Event\Search', 'Event', 'NoSerial'];
 
     public static function setUpBeforeClass(): void
     {
@@ -117,7 +118,7 @@ class Insert extends \PHPUnit\Framework\TestCase
 
         $this->assertInstanceOf('\SpotTest\Entity\Post', $result);
         $this->assertTrue($result->isNew());
-        $this->assertEquals(null, $result->id);
+        $this->assertNull($result->id);
     }
 
     public function testCreateReturnsEntity()

@@ -9,11 +9,12 @@ use SpotTest\Entity\Legacy;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class FieldAlias extends \PHPUnit\Framework\TestCase
 {
-    public static $legacyTable;
+    public static ?\SpotTest\Entity\Legacy $legacyTable = null;
 
-    private static $entities = ['PolymorphicComment', 'Legacy', 'Post', 'Author'];
+    private static array $entities = ['PolymorphicComment', 'Legacy', 'Post', 'Author'];
 
     public static function setUpBeforeClass(): void
     {
@@ -125,9 +126,7 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         return $legacy;
     }
 
-    /**
-     * @depends testLegacyInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testLegacyInsert')]
     public function testLegacyEntityToArrayUsesFieldMappings(Legacy $legacy)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
@@ -138,9 +137,7 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         $this->assertEquals($data['number'], 5);
     }
 
-    /**
-     * @depends testLegacyInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testLegacyInsert')]
     public function testLegacyUpdate(Legacy $legacy)
     {
         $legacy->name = 'Something ELSE Here';
@@ -155,9 +152,7 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         $this->assertSame(6, (int) $saved->number, 'Number should be updated');
     }
 
-    /**
-     * @depends testLegacyInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testLegacyInsert')]
     public function testLegacyEntityFieldMapping(Legacy $legacy)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Legacy');
@@ -167,9 +162,7 @@ class FieldAlias extends \PHPUnit\Framework\TestCase
         $this->assertEquals($legacy->number, $savedLegacyItem->number);
     }
 
-    /**
-     * @depends testLegacyInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testLegacyInsert')]
     public function testLegacyRelations(Legacy $legacy)
     {
         // New Comment

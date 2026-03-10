@@ -7,6 +7,7 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class SchemaQuerySql extends \PHPUnit\Framework\TestCase
 {
     public static function setUpBeforeClass(): void

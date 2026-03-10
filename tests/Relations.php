@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Relations extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Event\Search', 'Event'];
+    private static array $entities = ['PostTag', 'Post\Comment', 'Post', 'Tag', 'Author', 'Event\Search', 'Event'];
 
     public static function setUpBeforeClass(): void
     {
@@ -57,9 +58,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         return $postId;
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testPostCommentsInsert($postId)
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
@@ -87,9 +86,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertTrue(false !== $commentSaved);
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testPostCommentsCanIterate($postId)
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
@@ -130,9 +127,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertSame(0, $commentCount, 'A new post should have no comments');
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testRelationsNotInData($postId)
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
@@ -140,9 +135,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertNotContains('comments', array_keys($post->data()));
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testBlogCommentsRelationCountOne($postId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -151,9 +144,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertTrue(count($post->comments) == 1);
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testBlogCommentsRelationCanBeModified($postId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -165,9 +156,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertStringContainsString('ORDER BY', $sortedComments->query()->toSql());
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testRelationshipQueryNotReset($postId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -182,9 +171,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertSame($before_count, $post->comments->count());
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testBlogTagsHasManyThrough($postId)
     {
         $mapper = test_spot_mapper('\SpotTest\Entity\Post');
@@ -192,9 +179,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertSame(0, count($post->tags));
     }
 
-    /**
-     * @depends testBlogPostInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testBlogPostInsert')]
     public function testPostTagInsertHasManyThroughCountIsAccurate($postId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Post');
@@ -247,9 +232,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         return $event->id;
     }
 
-    /**
-     * @depends testEventInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testEventInsert')]
     public function testEventHasOneSearchIndex($eventId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event');
@@ -260,9 +243,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertEquals($eventSearch->event_id, $eventId);
     }
 
-    /**
-     * @depends testEventInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testEventInsert')]
     public function testEventSearchBelongsToEvent($eventId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event\Search');
@@ -273,9 +254,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertEquals($event->id, $eventId);
     }
 
-    /**
-     * @depends testEventInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testEventInsert')]
     public function testEventSearchEntityAccessibleWithEntityMethod($eventId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event\Search');
@@ -286,9 +265,7 @@ class Relations extends \PHPUnit\Framework\TestCase
         $this->assertEquals($event->id, $eventId);
     }
 
-    /**
-     * @depends testEventInsert
-     */
+    #[\PHPUnit\Framework\Attributes\Depends('testEventInsert')]
     public function testEventSearchEntityMethodCalledOnEntityDoesNotError($eventId)
     {
         $mapper = test_spot_mapper('SpotTest\Entity\Event\Search');

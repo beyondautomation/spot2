@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Type;
 
 class Encrypted extends Type
 {
-    public static $key;
+    public static string $key = '';
 
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
     {

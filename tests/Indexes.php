@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Indexes extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Zip'];
+    private static array $entities = ['Zip'];
 
     public static function setUpBeforeClass(): void
     {

@@ -7,9 +7,10 @@ namespace SpotTest;
 /**
  * @package Spot
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 class Scopes extends \PHPUnit\Framework\TestCase
 {
-    private static $entities = ['Post\Comment', 'Post', 'Event\Search', 'Event', 'Author'];
+    private static array $entities = ['Post\Comment', 'Post', 'Event\Search', 'Event', 'Author'];
 
     public static function setUpBeforeClass(): void
     {

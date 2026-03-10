@@ -58,29 +58,44 @@ class Resolver
      */
     public function migrate(): bool|int
     {
-        $entity        = $this->mapper->entity();
-        $table         = $entity::table();
-        $connection    = $this->mapper->connection();
-        $schemaManager = $connection->createSchemaManager();
+        $entity = $this->mapper->entity();
 
-        if ($schemaManager->tablesExist([$table])) {
-            $currentSchema = $schemaManager->introspectSchema();
-            $newSchema     = $this->migrateCreateSchema();
-            $comparator    = $schemaManager->createComparator();
-            $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
-            $queries       = $connection->getDatabasePlatform()->getAlterSchemaSQL($schemaDiff);
-        } else {
-            $newSchema = $this->migrateCreateSchema();
-            $queries   = $newSchema->toSql($connection->getDatabasePlatform());
+        // Guard against circular foreign key chains (e.g. A→B→C→A).
+        // If this entity is already being migrated higher in the call stack,
+        // skip silently — the table will be fully migrated when the original
+        // call completes.
+        if (isset(self::$migratingEntities[$entity])) {
+            return false;
         }
 
-        $lastResult = false;
+        self::$migratingEntities[$entity] = true;
 
-        foreach ($queries as $sql) {
-            $lastResult = (int) $connection->executeStatement($sql);
+        try {
+            $table         = $entity::table();
+            $connection    = $this->mapper->connection();
+            $schemaManager = $connection->createSchemaManager();
+
+            if ($schemaManager->tablesExist([$table])) {
+                $currentSchema = $schemaManager->introspectSchema();
+                $newSchema     = $this->migrateCreateSchema();
+                $comparator    = $schemaManager->createComparator();
+                $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
+                $queries       = $connection->getDatabasePlatform()->getAlterSchemaSQL($schemaDiff);
+            } else {
+                $newSchema = $this->migrateCreateSchema();
+                $queries   = $newSchema->toSql($connection->getDatabasePlatform());
+            }
+
+            $lastResult = false;
+
+            foreach ($queries as $sql) {
+                $lastResult = (int) $connection->executeStatement($sql);
+            }
+
+            return $lastResult;
+        } finally {
+            unset(self::$migratingEntities[$entity]);
         }
-
-        return $lastResult;
     }
 
     /**
@@ -319,6 +334,14 @@ class Resolver
 
         return end($components);
     }
+
+    /**
+     * Tracks entity class names currently being migrated to prevent infinite
+     * recursion when circular foreign key relationships exist (A→B→C→A).
+     *
+     * @var array<string, bool>
+     */
+    private static array $migratingEntities = [];
 
     /**
      * Add DBAL foreign key constraints for all BelongsTo relations.

@@ -33,6 +33,17 @@ class Resolver
      */
     private static array $migratingEntities = [];
 
+    /**
+     * Per-request cache of introspected DB schemas, keyed by connection object ID.
+     * introspectSchema() scans the entire database and is expensive — caching it
+     * means we only pay that cost once per connection per request rather than once
+     * per migrate() call. The cache is invalidated whenever we execute schema-
+     * changing SQL so the next comparison always sees an up-to-date schema.
+     *
+     * @var array<int, \Doctrine\DBAL\Schema\Schema>
+     */
+    private static array $introspectedSchemas = [];
+
     /** @var bool When true, identifier quoting is skipped (testing only). */
     protected bool $_noQuote = false;
 
@@ -84,7 +95,15 @@ class Resolver
             $schemaManager = $connection->createSchemaManager();
 
             if ($schemaManager->tablesExist([$table])) {
-                $currentSchema = $schemaManager->introspectSchema();
+                // introspectSchema() scans the entire database via INFORMATION_SCHEMA and is
+                // expensive. Cache the result statically for the duration of the request and
+                // only re-introspect after we have actually executed schema-changing SQL,
+                // since that's the only time the live schema can differ from our cached copy.
+                $cacheKey = spl_object_id($connection);
+                if (!isset(self::$introspectedSchemas[$cacheKey])) {
+                    self::$introspectedSchemas[$cacheKey] = $schemaManager->introspectSchema();
+                }
+                $currentSchema = self::$introspectedSchemas[$cacheKey];
                 $newSchema     = $this->migrateCreateSchema();
                 $comparator    = $schemaManager->createComparator();
                 $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
@@ -144,6 +163,8 @@ class Resolver
 
             foreach ($queries as $sql) {
                 $lastResult = (int) $connection->executeStatement($sql);
+                // Invalidate the cached schema — we just changed it.
+                unset(self::$introspectedSchemas[spl_object_id($connection)]);
             }
 
             return $lastResult;
@@ -166,7 +187,10 @@ class Resolver
         $tableObj = $schema->createTable($this->escapeIdentifier($table));
 
         // DBAL4 removed legacy serialization types. Map them to 'text' for schema purposes.
-        $legacyTypeMap = ['array' => 'text', 'simple_array' => 'text', 'object' => 'text'];
+        // 'encrypted' is a custom type whose getSQLDeclaration() returns TEXT — mapping it
+        // here lets DBAL correctly match the existing DB column and avoids spurious MODIFY
+        // COLUMN statements that would attempt to narrow the column and truncate data.
+        $legacyTypeMap = ['array' => 'text', 'simple_array' => 'text', 'object' => 'text', 'encrypted' => 'text'];
 
         foreach ($fields as $field) {
             $fieldType  = $legacyTypeMap[$field['type']] ?? $field['type'];
@@ -174,7 +198,11 @@ class Resolver
 
             // Map Spot's 'value' (field default) to DBAL's 'default'.
             // Only scalar values can be SQL column defaults; objects/arrays are PHP-level only.
-            if (isset($field['value']) && !isset($field['default']) && is_scalar($field['value'])) {
+            // Exclude date/time types whose 'value' is a PHP runtime expression (e.g. time(),
+            // new DateTime()) — these cannot be expressed as a static SQL column default and
+            // would generate invalid DDL such as DEFAULT 1741234567 on a TIMESTAMP column.
+            $isDateTimeType = in_array($fieldType, ['datetime', 'datetimetz', 'date', 'time', 'timestamp'], true);
+            if (isset($field['value']) && !isset($field['default']) && is_scalar($field['value']) && !$isDateTimeType) {
                 $field['default'] = $field['value'];
             }
 

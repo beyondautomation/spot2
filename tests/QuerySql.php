@@ -338,6 +338,7 @@ class QuerySql extends \PHPUnit\Framework\TestCase
         }
 
         $posts = $mapper->select('id, MAX(status) as maximus')
+            ->group(['id'])
             ->having(['maximus' => 10]);
         $this->assertStringContainsString('HAVING', $posts->toSql());
         $this->assertEquals(1, count($posts->toArray()));

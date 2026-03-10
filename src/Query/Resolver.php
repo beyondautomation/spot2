@@ -25,6 +25,14 @@ use Spot\Relation\BelongsTo;
  */
 class Resolver
 {
+    /**
+     * Tracks entity class names currently being migrated to prevent infinite
+     * recursion when circular foreign key relationships exist (A→B→C→A).
+     *
+     * @var array<string, bool>
+     */
+    private static array $migratingEntities = [];
+
     /** @var bool When true, identifier quoting is skipped (testing only). */
     protected bool $_noQuote = false;
 
@@ -394,14 +402,6 @@ class Resolver
 
         return end($components);
     }
-
-    /**
-     * Tracks entity class names currently being migrated to prevent infinite
-     * recursion when circular foreign key relationships exist (A→B→C→A).
-     *
-     * @var array<string, bool>
-     */
-    private static array $migratingEntities = [];
 
     /**
      * Add DBAL foreign key constraints for all BelongsTo relations.

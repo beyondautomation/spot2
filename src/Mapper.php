@@ -742,16 +742,22 @@ class Mapper implements MapperInterface
                     // Query the sequence directly for PostgreSQL autoincrement fields.
                     $fieldAliasMappings = $this->entityManager()->fieldAliasMappings();
                     $sequenceField      = $fieldAliasMappings[$pkField] ?? $pkField;
-                    // PostgreSQL automatically lowercases unquoted identifiers when
-                    // creating sequences, so the sequence name must be lowercase.
-                    $sequenceName       = strtolower($this->table() . '_' . $sequenceField . '_seq');
 
                     if (isset($pkFieldInfo['sequence_name'])) {
                         $sequenceName = $pkFieldInfo['sequence_name'];
+                    } else {
+                        // Ask PostgreSQL for the actual sequence attached to this column.
+                        // pg_get_serial_sequence() handles quoted mixed-case column names
+                        // correctly, avoiding the guessing game of constructing the name.
+                        $quotedTable  = $connection->quote($this->table());
+                        $quotedColumn = $connection->quote($sequenceField);
+                        $sequenceName = $connection->fetchOne(
+                            "SELECT pg_get_serial_sequence({$quotedTable}, {$quotedColumn})",
+                        ) ?: null;
                     }
-                    $result = $connection->fetchOne(
-                        'SELECT currval(' . $connection->quote($sequenceName) . ')',
-                    );
+                    $result = $sequenceName !== null
+                        ? $connection->fetchOne('SELECT currval(' . $connection->quote($sequenceName) . ')')
+                        : $connection->lastInsertId();
                 } else {
                     $result = $connection->lastInsertId();
                 }

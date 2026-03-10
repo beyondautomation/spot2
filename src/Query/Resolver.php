@@ -100,6 +100,7 @@ class Resolver
                 // only re-introspect after we have actually executed schema-changing SQL,
                 // since that's the only time the live schema can differ from our cached copy.
                 $cacheKey = spl_object_id($connection);
+
                 if (!isset(self::$introspectedSchemas[$cacheKey])) {
                     self::$introspectedSchemas[$cacheKey] = $schemaManager->introspectSchema();
                 }
@@ -202,6 +203,7 @@ class Resolver
             // new DateTime()) — these cannot be expressed as a static SQL column default and
             // would generate invalid DDL such as DEFAULT 1741234567 on a TIMESTAMP column.
             $isDateTimeType = in_array($fieldType, ['datetime', 'datetimetz', 'date', 'time', 'timestamp'], true);
+
             if (isset($field['value']) && !isset($field['default']) && is_scalar($field['value']) && !$isDateTimeType) {
                 $field['default'] = $field['value'];
             }

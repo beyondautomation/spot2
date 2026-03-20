@@ -5,3 +5,10 @@
 /phpunit_mysql.xml   export-ignore
 /phpunit_pgsql.xml   export-ignore
 /phpunit_sqlite.xml  export-ignore
+/audit_schema.php    export-ignore
+/infection.json      export-ignore
+/lint.php            export-ignore
+/psalm.xml           export-ignore
+/rector.php          export-ignore
+/.php-cs-fixer.php   export-ignore
+/phpstan.neon        export-ignore

@@ -993,18 +993,28 @@ class Mapper implements MapperInterface
         $fields    = $entityName::fields();
         $platform  = $this->connection()->getDatabasePlatform();
 
+        // Remap Spot-specific types to DBAL equivalents — only when no custom
+        // app type has been registered. If the app registered 'encrypted', 'uuid',
+        // or 'timestamp', use the app's own DBAL type handler directly.
         $legacyTypeMap = [
             'array'        => 'text',
             'simple_array' => 'text',
             'object'       => 'text',
-            'encrypted'    => 'text',
-            'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
         ];
+
+        if (!\Doctrine\DBAL\Types\Type::hasType('encrypted')) {
+            $legacyTypeMap['encrypted'] = 'text';
+        }
+
+        if (!\Doctrine\DBAL\Types\Type::hasType('uuid')) {
+            $legacyTypeMap['uuid'] = 'guid';
+        }
 
         foreach ($data as $field => $value) {
             $originalFieldType = $fields[$field]['type'];
 
-            // For legacy serialization types, serialize before storing.
+            // For legacy serialization types (array/object/simple_array), serialize
+            // before storing. Custom app types handle their own DB conversion.
             if (isset($legacyTypeMap[$originalFieldType]) && (is_array($value) || is_object($value))) {
                 $value = serialize($value);
             }
@@ -1044,22 +1054,49 @@ class Mapper implements MapperInterface
 
         foreach ($data as $field => $value) {
             if (isset($entityData[$field])) {
-                $legacyTypes  = [
+                // Remap Spot-specific type names that have no direct DBAL equivalent
+                // to their DBAL storage type — but ONLY if a custom type has NOT been
+                // registered by the application. If the app registered e.g. 'encrypted'
+                // or 'uuid', use the app's own type handler directly.
+                $builtinFallbacks = [
                     'array'        => 'text',
                     'simple_array' => 'text',
                     'object'       => 'text',
-                    'encrypted'    => 'text',
-                    'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
                 ];
+
+                if (!\Doctrine\DBAL\Types\Type::hasType('encrypted')) {
+                    $builtinFallbacks['encrypted'] = 'text';
+                }
+
+                if (!\Doctrine\DBAL\Types\Type::hasType('uuid')) {
+                    $builtinFallbacks['uuid'] = 'guid';
+                }
+
+                // Only array/object/simple_array use PHP serialization.
+                // All other types — including custom app types — handle their
+                // own PHP conversion via convertToPHPValue().
+                $serializeTypes = ['array', 'simple_array', 'object'];
                 $originalType = $fields[$field]['type'];
-                $fieldTypePHP = $legacyTypes[$originalType] ?? $originalType;
+                $fieldTypePHP = $builtinFallbacks[$originalType] ?? $originalType;
                 $typeHandler  = Type::getType($fieldTypePHP);
                 $phpValue     = $typeHandler->convertToPHPValue($value, $platform);
 
                 // For legacy serialization types, unserialize the stored string value.
-                if (isset($legacyTypes[$originalType]) && is_string($phpValue) && $phpValue !== '') {
-                    $unserialized = @unserialize($phpValue);
-                    $phpValue     = $unserialized !== false ? $unserialized : $phpValue;
+                // Only attempt unserialize if the string looks like serialized PHP data
+                // (starts with a known type indicator). This avoids triggering PHP 8
+                // unserialize errors on plain-text or JSON values in legacy columns.
+                if (
+                    in_array($originalType, $serializeTypes, true)
+                    && is_string($phpValue)
+                    && $phpValue !== ''
+                    && preg_match('/^(?:a|b|d|i|o|s|C|N|O|R|r|U):/i', $phpValue)
+                ) {
+                    try {
+                        $unserialized = unserialize($phpValue);
+                        $phpValue     = $unserialized !== false ? $unserialized : $phpValue;
+                    } catch (\Throwable) {
+                        // Value is not valid serialized PHP — keep raw string
+                    }
                 }
 
                 $phpData[$field] = $phpValue;

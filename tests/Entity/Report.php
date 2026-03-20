@@ -15,6 +15,7 @@ class Report extends Entity
 {
     protected static ?string $table = 'test_reports';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

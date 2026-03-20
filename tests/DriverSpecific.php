@@ -9,13 +9,17 @@ namespace SpotTest;
  */
 class DriverSpecific
 {
-    public static function getWeekFunction($mapper, $field = null)
+    public static function getWeekFunction($mapper, $field = null): string|false
     {
         if ($mapper->connectionIs('mysql')) {
             return 'WEEK(' . $field . ')';
-        } elseif ($mapper->connectionIs('pgsql')) {
+        }
+
+        if ($mapper->connectionIs('pgsql')) {
             return 'EXTRACT(WEEK FROM TIMESTAMP ' . $field . ')';
-        } elseif ($mapper->connectionIs('sqlite')) {
+        }
+
+        if ($mapper->connectionIs('sqlite')) {
             return "STRFTIME('%W', " . $field . ')';
         }
 

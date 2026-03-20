@@ -22,7 +22,7 @@ class Collection extends \PHPUnit\Framework\TestCase
 
         // Create some tags
         $tags = [];
-        $tagMapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $tagMapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
         for ($i = 1; $i <= $tagCount; $i++) {
             $tags[] = $tagMapper->create([
                 'name'  => "Title {$i}",
@@ -37,9 +37,9 @@ class Collection extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testMergeIntersecting()
+    public function testMergeIntersecting(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
 
         // Fetch 3 entries
         $tags = $mapper->all()->execute();
@@ -56,9 +56,9 @@ class Collection extends \PHPUnit\Framework\TestCase
         $this->assertEquals(3, count($tags));
     }
 
-    public function testCollectionJsonSerialize()
+    public function testCollectionJsonSerialize(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
 
         $tags = $mapper->all()->execute();
 
@@ -68,9 +68,9 @@ class Collection extends \PHPUnit\Framework\TestCase
         $this->assertSame($data, $json);
     }
 
-    public function testQueryCallsCollectionMethods()
+    public function testQueryCallsCollectionMethods(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
 
         // Method on Spot\Entity\Collection being called through Spot\Query object
         $tagsArray = $mapper->all()->resultsIdentities();
@@ -78,14 +78,12 @@ class Collection extends \PHPUnit\Framework\TestCase
         $this->assertSame([1, 2, 3], $tagsArray);
     }
 
-    public function testQueryCallsCollectionMethodsWithArguments()
+    public function testQueryCallsCollectionMethodsWithArguments(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
 
         // Method on Spot\Entity\Collection being called through Spot\Query object
-        $matchingTag = $mapper->all()->filter(function ($tag) {
-            return $tag->id === 1;
-        });
+        $matchingTag = $mapper->all()->filter(fn ($tag): bool => $tag->id === 1);
 
         $this->assertSame(1, $matchingTag[0]->id);
     }

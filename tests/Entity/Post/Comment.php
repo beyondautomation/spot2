@@ -18,6 +18,7 @@ class Comment extends Entity
 {
     protected static ?string $table = 'test_post_comments';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -30,19 +31,19 @@ class Comment extends Entity
         ];
     }
 
+    #[\Override]
     public static function scopes(): array
     {
         return [
-            'yesterday' => function (Query $query) {
-                return $query->where(['date_created :gt' => new \DateTime('yesterday'), 'date_created :lt' => new \DateTime('today')]);
-            },
+            'yesterday' => fn (Query $query): \Spot\Query => $query->where(['date_created :gt' => new \DateTime('yesterday'), 'date_created :lt' => new \DateTime('today')]),
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'post' => $mapper->belongsTo($entity, 'SpotTest\Entity\Post', 'post_id'),
+            'post' => $mapper->belongsTo($entity, \SpotTest\Entity\Post::class, 'post_id'),
         ];
     }
 }

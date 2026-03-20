@@ -16,6 +16,7 @@ class PolymorphicComment extends \Spot\Entity
 {
     protected static ?string $table = 'test_polymorphic_comments';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -29,6 +30,7 @@ class PolymorphicComment extends \Spot\Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [

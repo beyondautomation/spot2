@@ -75,7 +75,7 @@ class Manager
     {
         $entityName = $this->entityName;
 
-        if (!empty($this->fields)) {
+        if ($this->fields !== []) {
             return $this->fields;
         }
 
@@ -261,7 +261,7 @@ class Manager
      */
     public function fieldsDefined(): array
     {
-        if (empty($this->fieldsDefined)) {
+        if ($this->fieldsDefined === []) {
             $this->fields();
         }
 
@@ -275,7 +275,7 @@ class Manager
      */
     public function fieldDefaultValues(): array
     {
-        if (empty($this->fieldDefaultValues)) {
+        if ($this->fieldDefaultValues === []) {
             $this->fields();
         }
 
@@ -369,7 +369,7 @@ class Manager
      */
     public function tableOptions(): array
     {
-        if (empty($this->tableOptions)) {
+        if ($this->tableOptions === []) {
             $this->fields();
         }
 

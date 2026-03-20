@@ -26,9 +26,9 @@ class MultipleUniques extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testMultipleUniques()
+    public function testMultipleUniques(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\MultipleUniques');
+        $mapper = test_spot_mapper(\SpotTest\Entity\MultipleUniques::class);
 
         $entity1 = new \SpotTest\Entity\MultipleUniques([
             'data1' => 'data1_test1',

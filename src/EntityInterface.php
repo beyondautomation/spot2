@@ -18,11 +18,8 @@ interface EntityInterface
 
     /**
      * Setter for field properties.
-     *
-     * @param string $field
-     * @param mixed  $value
      */
-    public function __set($field, $value): void;
+    public function __set(string $field, mixed $value): void;
 
     /**
      * String representation of the class (JSON).
@@ -166,8 +163,14 @@ interface EntityInterface
 
     /**
      * Get, set, or unset a loaded relation object on this entity.
+     *
+     * - Pass no $relationObj (or null) to GET the current relation value.
+     * - Pass false to UNSET/clear the relation.
+     * - Pass $setNull = true with $relationObj = null to SET an explicit null
+     *   (used by eagerLoadOnCollection to mark a relation as loaded-but-empty).
+     * - Pass any other value to SET the relation.
      */
-    public function relation(mixed $relationName, mixed $relationObj = null): mixed;
+    public function relation(string $relationName, mixed $relationObj = null, bool $setNull = false): mixed;
 
     /**
      * Get primary key field name.

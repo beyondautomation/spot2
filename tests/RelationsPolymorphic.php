@@ -21,7 +21,7 @@ class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
         // Fixtures for this test suite
 
         // Author
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->create([
             'email'    => 'chester@tester.com',
             'password' => 'password',
@@ -31,17 +31,17 @@ class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
         // Posts
         $posts = [];
         $postsCount = 3;
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         for ($i = 1; $i <= $postsCount; $i++) {
             $posts[] = $mapper->create([
-                'title'     => "Eager Loading Test Post $i",
-                'body'      => "Eager Loading Test Post Content Here $i",
+                'title'     => "Eager Loading Test Post {$i}",
+                'body'      => "Eager Loading Test Post Content Here {$i}",
                 'author_id' => $author->id,
             ]);
         }
 
         // 3 polymorphic comments for each post
-        $commentMapper = test_spot_mapper('SpotTest\Entity\PolymorphicComment');
+        $commentMapper = test_spot_mapper(\SpotTest\Entity\PolymorphicComment::class);
 
         foreach ($posts as $post) {
             $comments = [];
@@ -52,15 +52,14 @@ class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
                     'item_id'   => $post->id,
                     'name'      => 'Chester Tester',
                     'email'     => 'chester@tester.com',
-                    'body'      => "This is a test POST comment $i. Yay!",
+                    'body'      => "This is a test POST comment {$i}. Yay!",
                 ]);
             }
         }
 
         // Event
         $events = [];
-        $eventsCount = 3;
-        $eventMapper = test_spot_mapper('SpotTest\Entity\Event');
+        $eventMapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $events[] = $eventMapper->create([
             'title'         => 'Eager Load Test Event',
             'description'   => 'some test eager loading description',
@@ -84,7 +83,7 @@ class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
                     'item_id'   => $event->id,
                     'name'      => 'Chester Tester',
                     'email'     => 'chester@tester.com',
-                    'body'      => "This is a test EVENT comment $i. Yay!",
+                    'body'      => "This is a test EVENT comment {$i}. Yay!",
                 ]);
             }
         }
@@ -97,24 +96,24 @@ class RelationsPolymorphic extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testEventHasManyPolymorphicComments()
+    public function testEventHasManyPolymorphicComments(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $event = $mapper->first();
-        $this->assertInstanceOf('SpotTest\Entity\Event', $event);
+        $this->assertInstanceOf(\SpotTest\Entity\Event::class, $event);
 
-        $query = $event->polymorphic_comments->query();
+        $event->polymorphic_comments->query();
 
         $this->assertEquals(3, count($event->polymorphic_comments));
     }
 
-    public function testPostHasManyPolymorphicComments()
+    public function testPostHasManyPolymorphicComments(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->first();
-        $this->assertInstanceOf('SpotTest\Entity\Post', $post);
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $post);
 
-        $query = $post->polymorphic_comments->query();
+        $post->polymorphic_comments->query();
 
         $this->assertEquals(3, count($post->polymorphic_comments));
     }

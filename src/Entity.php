@@ -13,6 +13,15 @@ namespace Spot;
  */
 abstract class Entity implements EntityInterface, \JsonSerializable
 {
+    /**
+     * Sentinel stored in the relation cache to represent a relation that was
+     * eagerly loaded but had no matching result (FK is NULL or no related row).
+     * Distinguishes "not yet loaded" (key absent) from "loaded, empty" (sentinel),
+     * preventing a stale result from a previous entity leaking into entities
+     * whose FK is NULL.
+     */
+    private const string RELATION_NULL = '__SPOT_RELATION_NULL__';
+
     /** @var string|null Table name for this entity. */
     protected static ?string $table = null;
 
@@ -72,7 +81,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         $this->initFields();
 
         // Set given data
-        if ($data) {
+        if ($data !== []) {
             $this->_data_org = $data;
             $this->data($data, false);
         }
@@ -83,7 +92,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      */
     public function __destruct()
     {
-        $entityName = get_class($this);
+        $entityName = static::class;
 
         if (isset(self::$relationFields[$entityName])) {
             foreach (self::$relationFields[$entityName] as $relation) {
@@ -98,7 +107,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
     #[\Override]
     public function __isset(mixed $key): bool
     {
-        $entityName = get_class($this);
+        $entityName = static::class;
 
         return isset($this->_data[$key])
             || isset($this->_dataModified[$key])
@@ -107,12 +116,9 @@ abstract class Entity implements EntityInterface, \JsonSerializable
 
     /**
      * Setter for field properties.
-     *
-     * @param string $field
-     * @param mixed  $value
      */
     #[\Override]
-    public function __set($field, $value): void
+    public function __set(string $field, mixed $value): void
     {
         $this->set($field, $value);
     }
@@ -223,7 +229,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      */
     public function data(?array $data = null, bool $modified = true, bool $loadRelations = true): static|array|null
     {
-        $entityName = get_class($this);
+        $entityName = static::class;
 
         // GET
         if ($data === null) {
@@ -234,7 +240,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
             }
 
             if ($loadRelations) {
-                foreach (self::$relationFields[$entityName] as $relationField) {
+                foreach (self::$relationFields[$entityName] ?? [] as $relationField) {
                     $relation = $this->relation($relationField);
 
                     if ($relation instanceof Entity\Collection) {
@@ -281,11 +287,9 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         $data_org = $this->_data_org;
         $data_mod = $this->_dataModified;
 
-        if (!empty($data_org)) {
-            foreach ($data_org as $field => $value) {
-                if (isset($data_mod[$field]) && $data_mod[$field] != $value) {
-                    $data[$field] = $data_mod[$field];
-                }
+        foreach ($data_org as $field => $value) {
+            if (isset($data_mod[$field]) && $data_mod[$field] != $value) {
+                $data[$field] = $data_mod[$field];
             }
         }
 
@@ -349,11 +353,13 @@ abstract class Entity implements EntityInterface, \JsonSerializable
                 }
 
                 return $this->_dataModified[$field] != ($this->_data[$field] ?? null);
-            } elseif (array_key_exists($field, $this->_data)) {
-                return false;
-            } else {
-                return null;
             }
+
+            if (array_key_exists($field, $this->_data)) {
+                return false;
+            }
+
+            return null;
         }
 
         foreach (array_keys($this->_dataModified) as $f) {
@@ -384,7 +390,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
             return isset($this->_errors[$field]) && count($this->_errors[$field]) > 0;
         }
 
-        return count($this->_errors) > 0;
+        return $this->_errors !== [];
     }
 
     /**
@@ -405,11 +411,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         }
 
         if (is_array($msgs)) {
-            if ($overwrite) {
-                $this->_errors = $msgs;
-            } else {
-                $this->_errors = array_merge_recursive($this->_errors, $msgs);
-            }
+            $this->_errors = $overwrite ? $msgs : array_merge_recursive($this->_errors, $msgs);
         }
 
         return $this->_errors;
@@ -448,32 +450,30 @@ abstract class Entity implements EntityInterface, \JsonSerializable
             $getter = [$this, $getterMethod];
             $v = $getter();
             unset($this->_inGetter[$field]);
-        } else {
+        } elseif (array_key_exists($field, $this->_dataModified)) {
             // We can't use isset because it returns false for NULL values
-            if (array_key_exists($field, $this->_dataModified)) {
+            $v = & $this->_dataModified[$field];
+        } elseif (array_key_exists($field, $this->_data)) {
+            // If the value is an array or object, copy it to dataModified first
+            // and return a reference to that
+            if (is_array($this->_data[$field])) {
+                $this->_dataModified[$field] = $this->_data[$field];
                 $v = & $this->_dataModified[$field];
-            } elseif (array_key_exists($field, $this->_data)) {
-                // If the value is an array or object, copy it to dataModified first
-                // and return a reference to that
-                if (is_array($this->_data[$field])) {
-                    $this->_dataModified[$field] = $this->_data[$field];
-                    $v = & $this->_dataModified[$field];
-                } elseif (is_object($this->_data[$field])) {
-                    $this->_dataModified[$field] = clone $this->_data[$field];
-                    $v = & $this->_dataModified[$field];
-                } else {
-                    $v = & $this->_data[$field];
-                }
-            } elseif ($relation = $this->relation($field)) {
-                // Auto-execute BelongsTo/HasOne relations so accessing a relation field
-                // returns the resolved entity rather than the relation proxy object.
-                // HasMany/HasManyThrough return Collections and are left as-is.
-                if ($relation instanceof \Spot\Relation\BelongsTo || $relation instanceof \Spot\Relation\HasOne) {
-                    $executed = $relation->execute();
-                    $v = & $executed;
-                } else {
-                    $v = & $relation;
-                }
+            } elseif (is_object($this->_data[$field])) {
+                $this->_dataModified[$field] = clone $this->_data[$field];
+                $v = & $this->_dataModified[$field];
+            } else {
+                $v = & $this->_data[$field];
+            }
+        } elseif ($relation = $this->relation($field)) {
+            // Auto-execute BelongsTo/HasOne relations so accessing a relation field
+            // returns the resolved entity rather than the relation proxy object.
+            // HasMany/HasManyThrough return Collections and are left as-is.
+            if ($relation instanceof \Spot\Relation\BelongsTo || $relation instanceof \Spot\Relation\HasOne) {
+                $executed = $relation->execute();
+                $v = & $executed;
+            } else {
+                $v = & $relation;
             }
         }
 
@@ -496,7 +496,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         // Custom setter method
         $camelCaseField = str_replace(' ', '', ucwords(str_replace('_', ' ', $field)));
         $setterMethod   = 'set' . $camelCaseField;
-        $entityName     = get_class($this);
+        $entityName     = static::class;
 
         if (!isset($this->_inSetter[$field]) && method_exists($this, $setterMethod)) {
             $this->_inSetter[$field] = true;
@@ -526,7 +526,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      *
      * @param mixed $relationObj null=get, false=unset, anything else=set
      */
-    public function relation(mixed $relationName, mixed $relationObj = null): mixed
+    public function relation(string $relationName, mixed $relationObj = null, bool $setNull = false): mixed
     {
         // Local static property instead of class variable prevents the
         // relation object, mapper, and connection info from being printed
@@ -534,9 +534,19 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         static $relations = [];
         $objectId = $this->_objectId;
 
-        if ($relationObj === null) {
-            // GET
-            return $relations[$objectId][$relationName] ?? false;
+        if ($relationObj === null && !$setNull) {
+            // GET — return stored value, translating sentinel back to null
+            $stored = $relations[$objectId][$relationName] ?? false;
+
+            return $stored === self::RELATION_NULL ? null : $stored;
+        }
+
+        if ($setNull) {
+            // Explicit null SET — store sentinel so we know this relation was
+            // eagerly loaded but had no result, preventing lazy-load fallback.
+            $relations[$objectId][$relationName] = self::RELATION_NULL;
+
+            return null;
         }
 
         if ($relationObj === false) {
@@ -551,7 +561,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         // SET
         $relations[$objectId][$relationName] = $relationObj;
 
-        $entityName = get_class($this);
+        $entityName = static::class;
 
         if (!isset(self::$relationFields[$entityName]) || !in_array($relationName, self::$relationFields[$entityName], true)) {
             self::$relationFields[$entityName][] = $relationName;
@@ -618,7 +628,7 @@ abstract class Entity implements EntityInterface, \JsonSerializable
             }
         }
 
-        $entityName = get_class($this);
+        $entityName = static::class;
 
         if (!isset(self::$relationFields[$entityName])) {
             self::$relationFields[$entityName] = [];

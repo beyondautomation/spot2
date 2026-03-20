@@ -36,29 +36,29 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      * @var array<string, callable|string>
      */
     protected static array $_whereOperators = [
-        '<'                 => 'Spot\Query\Operator\LessThan',
-        ':lt'               => 'Spot\Query\Operator\LessThan',
-        '<='                => 'Spot\Query\Operator\LessThanOrEqual',
-        ':lte'              => 'Spot\Query\Operator\LessThanOrEqual',
-        '>'                 => 'Spot\Query\Operator\GreaterThan',
-        ':gt'               => 'Spot\Query\Operator\GreaterThan',
-        '>='                => 'Spot\Query\Operator\GreaterThanOrEqual',
-        ':gte'              => 'Spot\Query\Operator\GreaterThanOrEqual',
-        '~='                => 'Spot\Query\Operator\RegExp',
-        '=~'                => 'Spot\Query\Operator\RegExp',
-        ':regex'            => 'Spot\Query\Operator\RegExp',
-        ':like'             => 'Spot\Query\Operator\Like',
-        ':notlike'          => 'Spot\Query\Operator\NotLike',
-        ':fulltext'         => 'Spot\Query\Operator\FullText',
-        ':fulltext_boolean' => 'Spot\Query\Operator\FullTextBoolean',
-        'in'                => 'Spot\Query\Operator\In',
-        ':in'               => 'Spot\Query\Operator\In',
-        '<>'                => 'Spot\Query\Operator\Not',
-        '!='                => 'Spot\Query\Operator\Not',
-        ':ne'               => 'Spot\Query\Operator\Not',
-        ':not'              => 'Spot\Query\Operator\Not',
-        '='                 => 'Spot\Query\Operator\Equals',
-        ':eq'               => 'Spot\Query\Operator\Equals',
+        '<'                 => \Spot\Query\Operator\LessThan::class,
+        ':lt'               => \Spot\Query\Operator\LessThan::class,
+        '<='                => \Spot\Query\Operator\LessThanOrEqual::class,
+        ':lte'              => \Spot\Query\Operator\LessThanOrEqual::class,
+        '>'                 => \Spot\Query\Operator\GreaterThan::class,
+        ':gt'               => \Spot\Query\Operator\GreaterThan::class,
+        '>='                => \Spot\Query\Operator\GreaterThanOrEqual::class,
+        ':gte'              => \Spot\Query\Operator\GreaterThanOrEqual::class,
+        '~='                => \Spot\Query\Operator\RegExp::class,
+        '=~'                => \Spot\Query\Operator\RegExp::class,
+        ':regex'            => \Spot\Query\Operator\RegExp::class,
+        ':like'             => \Spot\Query\Operator\Like::class,
+        ':notlike'          => \Spot\Query\Operator\NotLike::class,
+        ':fulltext'         => \Spot\Query\Operator\FullText::class,
+        ':fulltext_boolean' => \Spot\Query\Operator\FullTextBoolean::class,
+        'in'                => \Spot\Query\Operator\In::class,
+        ':in'               => \Spot\Query\Operator\In::class,
+        '<>'                => \Spot\Query\Operator\Not::class,
+        '!='                => \Spot\Query\Operator\Not::class,
+        ':ne'               => \Spot\Query\Operator\Not::class,
+        ':not'              => \Spot\Query\Operator\Not::class,
+        '='                 => \Spot\Query\Operator\Equals::class,
+        ':eq'               => \Spot\Query\Operator\Equals::class,
     ];
 
     /**
@@ -70,8 +70,6 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
 
     /** @var string[] Allowed sort directions (whitelist). */
     private static array $allowedSortDirections = ['ASC', 'DESC'];
-
-    protected Mapper $_mapper;
 
     protected string $_entityName;
 
@@ -96,16 +94,15 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
     protected array $_data = [];
 
     /**
-     * @param Mapper $mapper The mapper this query is scoped to.
+     * @param Mapper $_mapper The mapper this query is scoped to.
      *
      * @throws Exception
      */
-    public function __construct(Mapper $mapper)
+    public function __construct(protected Mapper $_mapper)
     {
-        $this->_mapper = $mapper;
-        $this->_entityName = $mapper->entity();
-        $this->_tableName = $mapper->table();
-        $this->_queryBuilder = $mapper->connection()->createQueryBuilder();
+        $this->_entityName = $this->_mapper->entity();
+        $this->_tableName = $this->_mapper->table();
+        $this->_queryBuilder = $this->_mapper->connection()->createQueryBuilder();
     }
 
     /**
@@ -146,7 +143,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
             return $callable(...$args);
         }
 
-        throw new \BadMethodCallException("Method '" . __CLASS__ . '::' . $method . "' not found");
+        throw new \BadMethodCallException("Method '" . self::class . '::' . $method . "' not found");
     }
 
     /**
@@ -159,8 +156,8 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      */
     public static function addMethod(string $method, callable $callback): void
     {
-        if (method_exists(__CLASS__, $method)) {
-            throw new \InvalidArgumentException("Method '" . $method . "' already exists on " . __CLASS__);
+        if (method_exists(self::class, $method)) {
+            throw new \InvalidArgumentException("Method '" . $method . "' already exists on " . self::class);
         }
 
         self::$_customMethods[$method] = $callback;
@@ -285,7 +282,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      */
     public function where(array $where, string $type = 'AND'): static
     {
-        if (!empty($where)) {
+        if ($where !== []) {
             $whereClause = implode(' ' . $type . ' ', $this->parseWhereToSQLFragments($where));
             $this->builder()->andWhere($whereClause);
         }
@@ -301,7 +298,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
      */
     public function orWhere(array $where, string $type = 'AND'): static
     {
-        if (!empty($where)) {
+        if ($where !== []) {
             $whereClause = implode(' ' . $type . ' ', $this->parseWhereToSQLFragments($where));
             $this->builder()->orWhere($whereClause);
         }
@@ -341,11 +338,11 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
             );
         }
 
-        $sql = preg_replace_callback('/\?/', function () use ($builder, &$params) {
+        $sql = preg_replace_callback('/\?/', function () use ($builder, &$params): string {
             return $builder->createPositionalParameter(array_shift($params));
         }, $sql);
 
-        $builder->andWhere((string) $this->escapeIdentifier($field) . ' ' . $sql);
+        $builder->andWhere($this->escapeIdentifier($field) . ' ' . $sql);
 
         return $this;
     }
@@ -399,7 +396,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
 
         // Quote each field properly using the platform-aware quoteIdentifier
         $quotedFields = array_map(
-            fn (string $f) => $this->mapper()->connection()->quoteIdentifier($f),
+            fn (string $f): string => $this->mapper()->connection()->quoteIdentifier($f),
             $fields,
         );
         $fieldString = implode(', ', $quotedFields);
@@ -605,7 +602,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
     public function unescapeIdentifier(string $identifier): string
     {
         if (str_contains($identifier, '.')) {
-            $parts = array_map([$this, 'unescapeIdentifier'], explode('.', $identifier));
+            $parts = array_map($this->unescapeIdentifier(...), explode('.', $identifier));
 
             return implode('.', $parts);
         }
@@ -634,7 +631,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
     public function escapeIdentifier(string|array $identifier): string|array
     {
         if (is_array($identifier)) {
-            array_walk($identifier, function (&$id) {
+            array_walk($identifier, function (string &$id): void {
                 $id = $this->escapeIdentifier($id);
             });
 
@@ -671,7 +668,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
         $functionPos = strpos($field, '(');
 
         if ($functionPos !== false) {
-            foreach ($fieldInfo as $key => $currentField) {
+            foreach (array_keys($fieldInfo) as $key) {
                 $fieldFound = strpos($field, $key);
 
                 if ($fieldFound !== false) {
@@ -776,11 +773,17 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
             if (!$operatorCallable) {
                 throw new \InvalidArgumentException(
                     "Unsupported operator '" . $operator . "' in WHERE clause. "
-                    . 'Register custom operators with Spot\\Query::addWhereOperator().',
+                    . ('Register custom operators with ' . \Spot\Query::class . '::addWhereOperator().'),
                 );
             }
 
             $col = $colData[0];
+
+            // Coerce DateTimeImmutable → DateTime so DBAL4's DateTimeType accepts it,
+            // matching the same coercion applied in Mapper::convertToDatabaseValues().
+            if ($value instanceof \DateTimeImmutable) {
+                $value = \DateTime::createFromImmutable($value);
+            }
 
             if ($value instanceof \DateTime) {
                 $mapper = $this->mapper();
@@ -788,7 +791,7 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
                 $value = $convertedValues[$col];
             }
 
-            if ($useAlias === true) {
+            if ($useAlias) {
                 $col = $this->fieldWithAlias($col);
             }
 
@@ -826,7 +829,9 @@ class Query implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerial
             static::$_whereOperatorObjects[$operator] = new $entry();
         }
 
-        /** @var callable&object */
-        return static::$_whereOperatorObjects[$operator];
+        /** @var callable(): mixed $callable */
+        $callable = static::$_whereOperatorObjects[$operator];
+
+        return $callable;
     }
 }

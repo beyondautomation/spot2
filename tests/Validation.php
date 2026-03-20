@@ -26,15 +26,15 @@ class Validation extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $mapper->truncateTable();
     }
 
-    public function testRequiredField()
+    public function testRequiredField(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
 
         $entity = new \SpotTest\Entity\Author([
             'is_admin' => true,
@@ -45,9 +45,9 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertContains('Email is required', $entity->errors('email'));
     }
 
-    public function testUniqueField()
+    public function testUniqueField(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
 
         // Setup new user
         $user1 = new \SpotTest\Entity\Author([
@@ -70,9 +70,9 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertContains("Email 'test@test.com' is already taken.", $user2->errors('email'));
     }
 
-    public function testUniqueFieldConvertToDb()
+    public function testUniqueFieldConvertToDb(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Report');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Report::class);
 
         // Setup new report
         $report1 = new \SpotTest\Entity\Report([
@@ -93,9 +93,9 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertContains("Date '2016-05-04' is already taken.", $report2->errors('date'));
     }
 
-    public function testEmail()
+    public function testEmail(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
 
         $entity = new \SpotTest\Entity\Author([
             'email' => 'test',
@@ -107,9 +107,9 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertContains('Email is not a valid email address', $entity->errors('email'));
     }
 
-    public function testLength()
+    public function testLength(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
 
         $entity = new \SpotTest\Entity\Author([
             'email' => 't@t',
@@ -121,9 +121,9 @@ class Validation extends \PHPUnit\Framework\TestCase
         $this->assertContains('Email must be 4 characters long', $entity->errors('email'));
     }
 
-    public function testDisabledValidation()
+    public function testDisabledValidation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
 
         $entity = new \SpotTest\Entity\Author([
             'email' => 't@t',
@@ -135,45 +135,49 @@ class Validation extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\IgnoreDeprecations]
-    public function testHasOneRelationValidation()
+    public function testHasOneRelationValidation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $search = new \SpotTest\Entity\Event\Search();
         $event = $mapper->build([]);
         $event->relation('search', $search);
+
         $mapper->validate($event, ['relations' => true]);
 
         $this->assertTrue(isset($event->errors()['search']));
     }
 
-    public function testBelongsToRelationValidation()
+    public function testBelongsToRelationValidation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $author = new \SpotTest\Entity\Author();
         $post = $mapper->build([]);
         $post->relation('author', $author);
+
         $mapper->validate($post, ['relations' => true]);
 
         $this->assertTrue(isset($post->errors()['author']));
     }
 
-    public function testHasManyRelationValidation()
+    public function testHasManyRelationValidation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $comment = new \SpotTest\Entity\Post\Comment();
         $post = $mapper->build([]);
         $post->relation('comments', new \Spot\Entity\Collection([$comment]));
+
         $mapper->validate($post, ['relations' => true]);
 
         $this->assertTrue(isset($post->errors()['comments'][0]));
     }
 
-    public function testHasManyThroughRelationValidation()
+    public function testHasManyThroughRelationValidation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $tag = new \SpotTest\Entity\Tag();
         $post = $mapper->build([]);
         $post->relation('tags', new \Spot\Entity\Collection([$tag]));
+
         $mapper->validate($post, ['relations' => true]);
 
         $this->assertTrue(isset($post->errors()['tags'][0]));

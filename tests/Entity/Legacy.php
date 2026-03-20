@@ -17,6 +17,7 @@ class Legacy extends Entity
 {
     protected static ?string $table = 'test_legacy';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -29,32 +30,33 @@ class Legacy extends Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'legacy']),
+            'polymorphic_comments' => $mapper->hasMany($entity, \SpotTest\Entity\PolymorphicComment::class, 'item_id')->where(['item_type' => 'legacy']),
         ];
     }
 
     /**
      * Helpers for field/column names - methods with public access so we can avoid duplication in tests
      */
-    public static function getIdFieldColumnName()
+    public static function getIdFieldColumnName(): string
     {
         return 'obnoxiouslyObtuse_IdentityColumn';
     }
 
-    public static function getNameFieldColumnName()
+    public static function getNameFieldColumnName(): string
     {
         return 'string_54_LegacyDB_x8';
     }
 
-    public static function getNumberFieldColumnName()
+    public static function getNumberFieldColumnName(): string
     {
         return 'xbf86_haikusInTheDark';
     }
 
-    public static function getDateCreatedColumnName()
+    public static function getDateCreatedColumnName(): string
     {
         return 'dtCreatedAt';
     }

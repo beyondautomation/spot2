@@ -26,9 +26,9 @@ class Indexes extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testUniqueCompoundIndexDuplicateCausesValidationError()
+    public function testUniqueCompoundIndexDuplicateCausesValidationError(): void
     {
-        $zipMapper = test_spot_mapper('\SpotTest\Entity\Zip');
+        $zipMapper = test_spot_mapper(\SpotTest\Entity\Zip::class);
 
         $data = [
             'code'  => '12345',
@@ -46,9 +46,9 @@ class Indexes extends \PHPUnit\Framework\TestCase
         $this->assertNotEmpty($zip2->errors());
     }
 
-    public function testUniqueCompoundIndexNoValidationErrorWhenDataDifferent()
+    public function testUniqueCompoundIndexNoValidationErrorWhenDataDifferent(): void
     {
-        $zipMapper = test_spot_mapper('\SpotTest\Entity\Zip');
+        $zipMapper = test_spot_mapper(\SpotTest\Entity\Zip::class);
 
         $data = [
             'code'  => '23456',

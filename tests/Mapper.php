@@ -10,18 +10,18 @@ namespace SpotTest;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 class Mapper extends \PHPUnit\Framework\TestCase
 {
-    public function testGetGenericMapper()
+    public function testGetGenericMapper(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Author');
-        $this->assertInstanceOf('Spot\Mapper', $mapper);
+        $mapper = test_spot_mapper(\SpotTest\Entity\Author::class);
+        $this->assertInstanceOf(\Spot\Mapper::class, $mapper);
     }
 
-    public function testGetCustomEntityMapper()
+    public function testGetCustomEntityMapper(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $this->assertInstanceOf(Entity\Event::mapper(), $mapper);
 
         $query = $mapper->testQuery();
-        $this->assertInstanceOf('Spot\Query', $query);
+        $this->assertInstanceOf(\Spot\Query::class, $query);
     }
 }

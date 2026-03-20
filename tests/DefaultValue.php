@@ -26,9 +26,9 @@ class DefaultValue extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testDefaultValue()
+    public function testDefaultValue(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\DefaultValue');
+        test_spot_mapper(\SpotTest\Entity\DefaultValue::class);
 
         $entity = new \SpotTest\Entity\DefaultValue();
         $this->assertEquals(2, $entity->data1);

@@ -10,7 +10,7 @@ namespace SpotTest;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
 {
-    public function testArray()
+    public function testArray(): void
     {
         $entity = $this->getEntity();
         $this->assertFalse($entity->isModified('fld_array'));
@@ -18,7 +18,7 @@ class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
         $this->assertTrue($entity->isModified('fld_array'));
     }
 
-    public function testSimpleArray()
+    public function testSimpleArray(): void
     {
         $entity = $this->getEntity();
         $this->assertFalse($entity->isModified('fld_simple_array'));
@@ -26,7 +26,7 @@ class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
         $this->assertTrue($entity->isModified('fld_simple_array'));
     }
 
-    public function testJsonArray()
+    public function testJsonArray(): void
     {
         $entity = $this->getEntity();
         $this->assertFalse($entity->isModified('fld_json_array'));
@@ -34,7 +34,7 @@ class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
         $this->assertTrue($entity->isModified('fld_json_array'));
     }
 
-    public function testObject()
+    public function testObject(): void
     {
         $entity = $this->getEntity();
         $this->assertFalse($entity->isModified('fld_object'));
@@ -44,18 +44,14 @@ class ArrayObjectTypes extends \PHPUnit\Framework\TestCase
 
     /**
      * The basic entity for these tests
-     *
-     * @return \SpotTest\Entity\ArrayObjectType
      */
-    private function getEntity()
+    private function getEntity(): \SpotTest\Entity\ArrayObjectType
     {
-        $entity = new \SpotTest\Entity\ArrayObjectType([
+        return new \SpotTest\Entity\ArrayObjectType([
             'fld_array' => ['value' => 'original'],
             'fld_simple_array' => ['value' => 'original'],
             'fld_json_array' => ['value' => 'original'],
             'fld_object' => (object) ['value' => 'original'],
         ]);
-
-        return $entity;
     }
 }

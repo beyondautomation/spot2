@@ -154,35 +154,50 @@ class Post extends Mapper
 
 Spot uses all [Doctrine DBAL types](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.0/reference/types.html):
 
-| Category      | Types                                         |
-|---------------|-----------------------------------------------|
-| Integer       | `smallint`, `integer`, `bigint`               |
-| Decimal       | `decimal`, `float`                            |
-| String        | `string`, `text`, `guid`                      |
-| Binary        | `binary`, `blob`                              |
-| Boolean       | `boolean`                                     |
-| Date / Time   | `date`, `datetime`, `datetimetz`, `time`      |
-| Array / Object| `array`, `simple_array`, `object`             |
+| Category       | Types                                         |
+|----------------|-----------------------------------------------|
+| Integer        | `smallint`, `integer`, `bigint`               |
+| Decimal        | `decimal`, `float`                            |
+| String         | `string`, `text`, `guid`                      |
+| Binary         | `binary`, `blob`                              |
+| Boolean        | `boolean`                                     |
+| Date / Time    | `date`, `datetime`, `datetimetz`, `time`      |
+| Array / Object | `array`, `simple_array`, `object`             |
 
-> **Note:** DBAL4 requires `\DateTime` objects for datetime fields. `\DateTimeImmutable` values are automatically coerced by Spot 2.5.
+> **Note:** `array`, `simple_array`, and `object` were removed as native DBAL4
+> types. Spot maps them to `text` and handles serialization/unserialization
+> transparently — no changes required in your entity definitions.
+
+> **Note:** DBAL4 requires `\DateTime` for datetime fields.
+> `\DateTimeImmutable` values are automatically coerced in both field writes
+> and `->where()` calls.
 
 ### Custom Field Types
 
-Register custom DBAL types as normal — Spot uses DBAL's type system directly:
+Register custom DBAL types before creating your `Spot\Locator`. Spot will
+automatically handle them in schema migration, type conversion, and reads:
 
 ```php
 use Doctrine\DBAL\Types\Type;
+
 Type::addType('encrypted', \App\Core\Encryption\DBALEncrypted::class);
+Type::addType('uuid',      \Ramsey\Uuid\Doctrine\UuidType::class);
+Type::addType('timestamp', \App\Core\Encryption\TimestampType::class);
 ```
 
-Custom DBAL type classes must implement the typed method signatures required by DBAL 4:
+Custom DBAL type classes must implement the typed signatures required by DBAL 4:
 
 ```php
 public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): mixed {}
 public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed {}
-public function getSqlDeclaration(array $fieldDeclaration, AbstractPlatform $platform): string {}
+public function getSQLDeclaration(array $column, AbstractPlatform $platform): string {}
 public function getName(): string {}
 ```
+
+> **Note on `timestamp` fields:** The `value` option (e.g. `'value' => time()`)
+> is applied at the PHP level when a new entity is instantiated. It is **not**
+> emitted as a SQL `DEFAULT` clause — Spot strips runtime PHP expressions from
+> schema generation to prevent invalid DDL.
 
 ---
 
@@ -200,6 +215,9 @@ $post = $mapper->first(['title' => 'Hello World']);
 
 // By primary key
 $post = $mapper->get(1);
+
+// DateTimeImmutable works in WHERE clauses
+$recent = $mapper->where(['date_created :gt' => new \DateTimeImmutable('-7 days')]);
 ```
 
 ---
@@ -240,6 +258,8 @@ public static function relations(Mapper $mapper, Entity $entity): array
 ### BelongsTo
 
 The current entity holds the foreign key pointing to the related entity.
+If the foreign key is `NULL`, accessing the relation returns `null` — it never
+returns data from another entity in the collection.
 
 ```php
 public static function relations(Mapper $mapper, Entity $entity): array
@@ -283,8 +303,12 @@ Solve the N+1 problem with `with()`:
 
 ```php
 $posts = $mapper->all()->with('comments');
-$posts = $mapper->all()->with(['comments', 'tags']);
+$posts = $mapper->all()->with(['comments', 'tags', 'author']);
 ```
+
+Relations that have no matching rows return `null` (for `BelongsTo`/`HasOne`)
+or an empty `Collection` (for `HasMany`/`HasManyThrough`) — never a stale
+result from another entity.
 
 ---
 
@@ -303,40 +327,90 @@ public static function events(\Spot\EventEmitter $emitter): void
 }
 ```
 
-Available events: `beforeSave`, `afterSave`, `beforeInsert`, `afterInsert`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`, `afterLoad`.
+Available events: `beforeSave`, `afterSave`, `beforeInsert`, `afterInsert`,
+`beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`, `afterLoad`,
+`beforeWith`, `afterWith`, `loadWith`.
 
 ---
 
 ## Migrations
 
-Spot can auto-create and alter tables based on your entity field definitions:
+Spot can auto-create and alter tables based on your entity field definitions.
+`migrate()` is **strictly additive** — it will never drop columns, tables, or
+indexes, even if the DBAL schema comparator generates destructive DDL internally.
 
 ```php
 $mapper->migrate();
 ```
+
+### Migration behaviour
+
+- Tables that do not exist are **created**.
+- Missing columns are **added**.
+- Existing columns are **modified** only when the type or constraint changes.
+- `DROP TABLE`, `DROP COLUMN`, `DROP INDEX`, and `DROP FOREIGN KEY` statements
+  are always suppressed.
+- `string` columns without an explicit length, or with a length over 16 383
+  characters, are automatically promoted to `text` (MySQL utf8mb4 limit).
+- `datetime`, `timestamp`, `date`, and `time` fields that use `'value' => ...`
+  do not emit a SQL `DEFAULT` clause.
+- The introspected DB schema is cached per-connection per-request, so
+  `migrate()` on 100+ entities only calls `INFORMATION_SCHEMA` once.
+
+### Pre-production audit
+
+Before deploying to production, run the audit script against a copy of your
+production database to see exactly what SQL would be executed:
+
+```bash
+php audit_schema.php \
+    --dsn="mysql://user:pass@host/prod_copy" \
+    --bootstrap="/path/to/app/bootstrap.php"
+```
+
+Exit codes: `0` = safe to deploy, `1` = schema changes pending (review first),
+`2` = errors (do not deploy). Use `--help` for all options.
 
 ---
 
 ## Development
 
 ```bash
+composer install
+
 # Run tests (SQLite — no setup required)
 composer test
 
-# Run static analysis (PHPStan level 8)
-composer analyse
+# Run tests against MySQL or PostgreSQL
+composer test:mysql
+composer test:pgsql
 
-# Check code style
-composer cs:check
+# Code style (PSR-12)
+composer cs          # check only
+composer cs:fix      # auto-fix
 
-# Auto-fix code style
-composer cs:fix
+# Static analysis
+composer analyse     # PHPStan level 8
+composer psalm       # Psalm level 3
 
-# Preview Rector refactors
-composer rector:dry
-
-# Run everything (CI pipeline)
+# Run full pipeline (cs + analyse + psalm + test)
 composer check
+
+# Run full pipeline + mutation testing (requires Xdebug or PCOV)
+composer check:full
+
+# PHP syntax check
+composer lint
+
+# Preview / apply Rector refactors
+composer refactor:dry
+composer refactor
+
+# Regenerate Psalm baseline after large refactor
+composer psalm:baseline
+
+# Pre-production schema audit
+composer audit -- --dsn="mysql://..." --bootstrap="..."
 ```
 
 ---
@@ -375,13 +449,21 @@ public static function events(EventEmitter $emitter): void { ... }
 
 ### 3. DBAL 4 type changes
 
-- `DateTimeType` strictly requires `\DateTime` — `\DateTimeImmutable` is coerced automatically by Spot 2.5, but you may want to use `\DateTime` explicitly.
-- Custom DBAL type classes must add typed method signatures (see [Custom Field Types](#custom-field-types)).
-- Removed DBAL APIs: `fetchColumn()` → `fetchOne()`, `fetchAll()` → `fetchFirstColumn()` / `fetchAllAssociative()`, `fetchArray()` → `fetchNumeric()`.
+- `DateTimeType` strictly requires `\DateTime` — `\DateTimeImmutable` is
+  coerced automatically in both field saves and `->where()` calls.
+- Custom DBAL type classes must use the typed method signatures required by
+  DBAL 4 (see [Custom Field Types](#custom-field-types)).
+- Removed DBAL APIs: `fetchColumn()` → `fetchOne()`,
+  `fetchAll()` → `fetchAllAssociative()`, `fetchArray()` → `fetchNumeric()`.
+- `array`, `simple_array`, and `object` field types are mapped to `text`
+  transparently. No entity changes required.
 
 ### 4. `BelongsTo` and `HasOne` now auto-resolve
 
-Accessing a `belongsTo` or `hasOne` relation on an entity now returns the resolved entity directly instead of the relation proxy object. Code that relied on receiving the proxy object (e.g. calling `->execute()` explicitly) should be updated to use the entity directly.
+Accessing a `belongsTo` or `hasOne` relation on an entity now returns the
+resolved entity directly (or `null` if the FK is `NULL`) instead of the
+relation proxy object. Code that relied on receiving the proxy and calling
+`->execute()` explicitly should use the entity directly.
 
 ### 5. `Locator::mapper()` throws `InvalidArgumentException` for unknown classes
 

@@ -37,25 +37,12 @@ return RectorConfig::configure()
         // Coding style normalisations safe to apply automatically
         SetList::CODING_STYLE,
 
-        // PHPUnit 10/11 compatibility (assertSame, setUp return types, etc.)
-        PHPUnitSetList::PHPUNIT_100,
+        // PHPUnit annotations to attributes (safe — no constructor changes)
         PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
     ])
 
     // Rules we explicitly skip because they conflict with Spot's design
     ->withSkip([
-        // Entity::fields() / ::relations() are intentionally static on user subclasses.
-        // Converting them to non-static would break every existing entity definition.
-        \Rector\Php71\Rector\FuncCall\CountOnNullRector::class,
-
-        // Spot's dynamic data[] pattern means Entity properties cannot be declared
-        // as typed properties — subclasses store everything in _data/_dataModified.
-        \Rector\Php74\Rector\Property\TypedPropertyRector::class => [
-            __DIR__ . '/src/Entity.php',
-            __DIR__ . '/src/Entity/Manager.php',
-            __DIR__ . '/src/Config.php',
-        ],
-
         // Rector sometimes wants to inline single-use variables that are assigned
         // by reference (&$var) — this breaks Spot's reference-based __get magic.
         \Rector\CodingStyle\Rector\Assign\SplitDoubleAssignRector::class,
@@ -63,8 +50,4 @@ return RectorConfig::configure()
         // Don't convert string interpolation — Spot uses it intentionally in SQL
         // generation and converting it reduces readability there.
         \Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector::class,
-
-        // PHPUnit: don't flag tests that use @depends — the dependency chain in
-        // the test suite relies on exact method names and return values.
-        \Rector\PHPUnit\Rector\ClassMethod\AddDoesNotPerformAssertionToNonAssertingTestRector::class,
     ]);

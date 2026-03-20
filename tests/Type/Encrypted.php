@@ -11,17 +11,17 @@ class Encrypted extends Type
 {
     public static string $key = '';
 
+    #[\Override]
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
     {
         if (is_string($value)) {
-            $value = self::aes256_decrypt(self::$key, base64_decode($value));
-        } else {
-            $value = null;
+            return self::aes256_decrypt(self::$key, base64_decode($value));
         }
 
-        return $value;
+        return null;
     }
 
+    #[\Override]
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): mixed
     {
         return base64_encode(self::aes256_encrypt(self::$key, $value));
@@ -42,6 +42,7 @@ class Encrypted extends Type
         if (32 !== strlen($key)) {
             $key = hash('SHA256', $key, true);
         }
+
         // Pad data to 16-byte boundary for ZERO_PADDING mode
         $padLen = 16 - (strlen($data) % 16);
         $data .= str_repeat(chr($padLen), $padLen);
@@ -56,6 +57,7 @@ class Encrypted extends Type
         if (32 !== strlen($key)) {
             $key = hash('SHA256', $key, true);
         }
+
         $iv = str_repeat("\0", 16);
         $decrypted = openssl_decrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, $iv);
         $padding = ord($decrypted[strlen($decrypted) - 1]);

@@ -12,13 +12,15 @@ class Entity extends \PHPUnit\Framework\TestCase
 {
     private static array $entities = ['Post', 'Author', 'CustomMethods'];
 
+    public ?string $title = null;
+
     public static function setUpBeforeClass(): void
     {
         foreach (self::$entities as $entity) {
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
 
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->build([
             'id' => 1,
             'email' => 'example@example.com',
@@ -39,9 +41,9 @@ class Entity extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testEntitySetDataProperties()
+    public function testEntitySetDataProperties(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = new \SpotTest\Entity\Post();
 
         // Set data
@@ -68,9 +70,9 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertNull($post->asdf);
     }
 
-    public function testEntitySetDataConstruct()
+    public function testEntitySetDataConstruct(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = new \SpotTest\Entity\Post([
             'title' => 'My Awesome Post',
             'body' => '<p>Body</p>',
@@ -86,7 +88,6 @@ class Entity extends \PHPUnit\Framework\TestCase
             'title' => 'My Awesome Post',
             'body' => '<p>Body</p>',
             'status' => 0,
-            'date_created' => null,
             'data' => null,
             'author_id' => 1,
             'date_created' => new \DateTime(),
@@ -96,7 +97,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals($testData, $data);
     }
 
-    public function testEntityErrors()
+    public function testEntityErrors(): void
     {
         $post = new \SpotTest\Entity\Post([
             'title' => 'My Awesome Post',
@@ -122,7 +123,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals($postErrors['title'], $post->errors('title'));
     }
 
-    public function testDataModified()
+    public function testDataModified(): void
     {
         $data = [
             'title' => 'My Awesome Post 2',
@@ -158,7 +159,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertNull($post->dataModified('status'));
     }
 
-    public function testDataNulls()
+    public function testDataNulls(): void
     {
         $data = [
             'title' => 'A Post',
@@ -189,7 +190,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertTrue($post->isModified('title'));
     }
 
-    public function testJsonArray()
+    public function testJsonArray(): void
     {
         $data = [
             'title' => 'A Post',
@@ -202,7 +203,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $post = new \SpotTest\Entity\Post($data);
         $this->assertEquals($post->data, ['posts' => 'are cool', 'another field' => 'to serialize']);
 
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $mapper->save($post);
 
         $post = $mapper->get($post->id);
@@ -216,7 +217,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals($post->data, 'asdf');
     }
 
-    public function testDataReferences()
+    public function testDataReferences(): void
     {
         $data = [
             'title' => 'A Post',
@@ -247,7 +248,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals($post->data, ['posts' => 'are still cool', 'another field' => 'to serialize']);
     }
 
-    public function testLocalVariablesAreNotByReference()
+    public function testLocalVariablesAreNotByReference(): void
     {
         $data = [
             'title' => 'A Post',
@@ -258,14 +259,12 @@ class Entity extends \PHPUnit\Framework\TestCase
         ];
 
         $post = new \SpotTest\Entity\Post($data);
-
-        $title = $post->title;
         $title = 'A Post Title';
 
         $this->assertNotEquals($title, $post->title);
     }
 
-    public function testLocalArrayVariablesAreNotByReference()
+    public function testLocalArrayVariablesAreNotByReference(): void
     {
         $data = [
             'title' => 'A Post',
@@ -283,7 +282,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertNotEquals($data, $post->data);
     }
 
-    public function testCustomSetterMethod()
+    public function testCustomSetterMethod(): void
     {
         $entity = new \SpotTest\Entity\CustomMethods();
         $entity->test1 = 'test';
@@ -291,7 +290,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals('test_test_gotten', $entity->test1);
     }
 
-    public function testCustomSetterMethodWithArrayLoad()
+    public function testCustomSetterMethodWithArrayLoad(): void
     {
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
@@ -300,7 +299,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals('test_test_gotten', $entity->test1);
     }
 
-    public function testCustomGetterMethodWithArrayData()
+    public function testCustomGetterMethodWithArrayData(): void
     {
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
@@ -310,9 +309,9 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals('test_test_gotten', $data['test1']);
     }
 
-    public function testCustomSetterShouldNotTriggerModified()
+    public function testCustomSetterShouldNotTriggerModified(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\CustomMethods');
+        $mapper = test_spot_mapper(\SpotTest\Entity\CustomMethods::class);
 
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
@@ -329,7 +328,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertFalse($entity->isModified());
     }
 
-    public function testGetPrimaryKeyField()
+    public function testGetPrimaryKeyField(): void
     {
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
@@ -337,7 +336,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals('id', $entity->primaryKeyField());
     }
 
-    public function testGetPrimaryKeyFieldValue()
+    public function testGetPrimaryKeyFieldValue(): void
     {
         $entity = new \SpotTest\Entity\CustomMethods([
             'test1' => 'test',
@@ -345,7 +344,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals($entity->id, $entity->primaryKey());
     }
 
-    public function testJsonEncodeJsonSerializable()
+    public function testJsonEncodeJsonSerializable(): void
     {
         $post = new \SpotTest\Entity\Post([
             'title' => 'A Post',
@@ -360,7 +359,7 @@ class Entity extends \PHPUnit\Framework\TestCase
         $this->assertEquals('A Post', $data['title']);
     }
 
-    public function testToStringReturnsJson()
+    public function testToStringReturnsJson(): void
     {
         $post = new \SpotTest\Entity\Post([
             'title' => 'A Post',

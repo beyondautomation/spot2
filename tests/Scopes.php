@@ -18,7 +18,7 @@ class Scopes extends \PHPUnit\Framework\TestCase
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
 
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->build([
             'id' => 1,
             'email' => 'example@example.com',
@@ -39,30 +39,30 @@ class Scopes extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testSingleScopes()
+    public function testSingleScopes(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $query = $mapper->all()->noQuote()->active();
         $this->assertEquals('SELECT * FROM test_events WHERE test_events.status = ?', $query->toSql());
     }
 
-    public function testMultipleScopes()
+    public function testMultipleScopes(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $query = $mapper->select()->noQuote()->free()->active();
         $this->assertEquals('SELECT * FROM test_events WHERE (test_events.type = ?) AND (test_events.status = ?)', $query->toSql());
     }
 
-    public function testEntityScopes()
+    public function testEntityScopes(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $query = $mapper->select()->noQuote()->active();
         $this->assertEquals('SELECT * FROM test_posts WHERE test_posts.status = ?', $query->toSql());
     }
 
-    public function testRelationScopes()
+    public function testRelationScopes(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $mapper->insert([
             'title' => 'Test',
             'body' => 'Test body',

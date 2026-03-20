@@ -17,6 +17,7 @@ class PostTag extends Entity
 {
     protected static ?string $table = 'test_posttags';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -27,11 +28,12 @@ class PostTag extends Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'post' => $mapper->belongsTo($entity, 'SpotTest\Entity\Post', 'post_id'),
-            'tag'  => $mapper->belongsTo($entity, 'SpotTest\Entity\Tag', 'tag_id'),
+            'post' => $mapper->belongsTo($entity, \SpotTest\Entity\Post::class, 'post_id'),
+            'tag'  => $mapper->belongsTo($entity, \SpotTest\Entity\Tag::class, 'tag_id'),
         ];
     }
 }

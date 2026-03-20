@@ -13,6 +13,7 @@ class CustomMethods extends \Spot\Entity
 {
     protected static ?string $table = 'test_custom_methods';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -24,12 +25,12 @@ class CustomMethods extends \Spot\Entity
     }
 
     // Custom setter
-    public function setTest1($value)
+    public function setTest1(string $value): string
     {
         return $value . '_test';
     }
 
-    public function setTest2($value)
+    public function setTest2(string $value): string
     {
         $this->test3 = $value . '_copy';
 
@@ -37,7 +38,7 @@ class CustomMethods extends \Spot\Entity
     }
 
     // Custom getter
-    public function getTest1()
+    public function getTest1(): string
     {
         return $this->get('test1') . '_gotten';
     }

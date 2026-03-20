@@ -15,6 +15,7 @@ class NotNullOverride extends \Spot\Entity
 {
     protected static ?string $table = 'test_notnulloverride';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

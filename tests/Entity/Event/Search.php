@@ -22,6 +22,7 @@ class Search extends Entity
         'engine' => 'MyISAM',
     ];
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -31,10 +32,11 @@ class Search extends Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'event' => $mapper->belongsTo($entity, 'SpotTest\Entity\Event', 'event_id'),
+            'event' => $mapper->belongsTo($entity, \SpotTest\Entity\Event::class, 'event_id'),
         ];
     }
 }

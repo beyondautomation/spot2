@@ -29,11 +29,11 @@ class Not
      */
     public function __invoke(QueryBuilder $builder, string $column, mixed $value): string
     {
-        if (is_array($value) && !empty($value)) {
+        if (is_array($value) && $value !== []) {
             return $column . ' NOT IN (' . $builder->createPositionalParameter($value, ArrayParameterType::STRING) . ')';
         }
 
-        if ($value === null || (is_array($value) && empty($value))) {
+        if ($value === null || ($value === [])) {
             return $column . ' IS NOT NULL';
         }
 

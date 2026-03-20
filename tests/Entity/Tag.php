@@ -16,6 +16,7 @@ class Tag extends \Spot\Entity
 {
     protected static ?string $table = 'test_tags';
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -24,10 +25,11 @@ class Tag extends \Spot\Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'posts' => $mapper->hasManyThrough($entity, 'SpotTest\Entity\Post', 'SpotTest\Entity\PostTag', 'tag_id', 'post_id'),
+            'posts' => $mapper->hasManyThrough($entity, \SpotTest\Entity\Post::class, \SpotTest\Entity\PostTag::class, 'tag_id', 'post_id'),
         ];
     }
 }

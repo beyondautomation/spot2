@@ -15,6 +15,7 @@ class MultipleIndexedField extends \Spot\Entity
 {
     protected static ?string $table = 'test_multipleindexedfield';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

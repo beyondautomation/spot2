@@ -62,7 +62,7 @@ abstract class RelationAbstract
             return $callable(...$args);
         }
 
-        throw new \BadMethodCallException('Method ' . static::class . "::$func does not exist");
+        throw new \BadMethodCallException('Method ' . static::class . "::{$func} does not exist");
     }
 
     public function mapper(): Mapper
@@ -92,8 +92,10 @@ abstract class RelationAbstract
 
     /**
      * Get or set the identity value used to constrain relation queries.
+     *
+     * @param array<mixed>|null $identityValue
      */
-    public function identityValue(mixed $identityValue = null): mixed
+    public function identityValue(array|null $identityValue = null): mixed
     {
         if ($identityValue !== null) {
             $this->identityValue = $identityValue;
@@ -124,12 +126,15 @@ abstract class RelationAbstract
         }
 
         foreach ($collection as $entity) {
-            $key = $entity->$relationEntityKey !== null ? $entity->$relationEntityKey : '';
+            $key = $entity->$relationEntityKey ?? '';
 
             if (isset($entityRelations[$key])) {
                 $entity->relation($relationName, $entityRelations[$key]);
             } else {
-                $entity->relation($relationName, null);
+                // Explicitly mark this relation as loaded-but-empty using the
+                // setNull sentinel, so __get does not fall through to lazy-load
+                // and accidentally return a cached result from a previous entity.
+                $entity->relation($relationName, null, true);
             }
         }
 
@@ -138,7 +143,7 @@ abstract class RelationAbstract
 
     public function query(): Query
     {
-        if ($this->query === null) {
+        if (!$this->query instanceof \Spot\Query) {
             $this->query = $this->buildQuery();
 
             foreach ($this->queryQueue as $closure) {

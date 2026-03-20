@@ -55,6 +55,21 @@ class Resolver
     }
 
     /**
+     * Reset all static caches — for use in tests only.
+     *
+     * PHPUnit runs all test classes in the same process, so static properties
+     * persist across test classes. Call this in tearDownAfterClass() or setUp()
+     * when testing schema migration to ensure a clean slate.
+     *
+     * @internal Not for production use.
+     */
+    public static function resetStaticCaches(): void
+    {
+        self::$migratingEntities   = [];
+        self::$introspectedSchemas = [];
+    }
+
+    /**
      * Disable identifier quoting — used for cross-platform SQL output in tests.
      */
     public function noQuote(bool $noQuote = true): static
@@ -94,17 +109,22 @@ class Resolver
             $connection    = $this->mapper->connection();
             $schemaManager = $connection->createSchemaManager();
 
-            if ($schemaManager->tablesExist([$table])) {
-                // introspectSchema() scans the entire database via INFORMATION_SCHEMA and is
-                // expensive. Cache the result statically for the duration of the request and
-                // only re-introspect after we have actually executed schema-changing SQL,
-                // since that's the only time the live schema can differ from our cached copy.
-                $cacheKey = spl_object_id($connection);
+            // introspectSchema() scans the entire database via INFORMATION_SCHEMA and is
+            // expensive. Cache the result statically for the duration of the request and
+            // only re-introspect after we have actually executed schema-changing SQL,
+            // since that's the only time the live schema can differ from our cached copy.
+            // Using the cached schema for table existence avoids an extra tablesExist()
+            // query on every migrate() call (saves 182+ round-trips on a full migration).
+            $cacheKey = spl_object_id($connection);
 
-                if (!isset(self::$introspectedSchemas[$cacheKey])) {
-                    self::$introspectedSchemas[$cacheKey] = $schemaManager->introspectSchema();
-                }
-                $currentSchema = self::$introspectedSchemas[$cacheKey];
+            if (!isset(self::$introspectedSchemas[$cacheKey])) {
+                self::$introspectedSchemas[$cacheKey] = $schemaManager->introspectSchema();
+            }
+
+            $currentSchema = self::$introspectedSchemas[$cacheKey];
+
+            // hasTable() accepts both quoted and unquoted names; try both to be safe.
+            if ($currentSchema->hasTable($this->escapeIdentifier($table)) || $currentSchema->hasTable($table)) {
                 $newSchema     = $this->migrateCreateSchema();
                 $comparator    = $schemaManager->createComparator();
                 $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
@@ -128,19 +148,20 @@ class Resolver
                     if (preg_match('/^\s*ALTER\s+TABLE\s+/i', $sql) && preg_match('/\bDROP\b/i', $sql)) {
                         // Extract the table name prefix, e.g. "ALTER TABLE `statuses`"
                         preg_match('/^\s*(ALTER\s+TABLE\s+\S+)\s+/i', $sql, $m);
-                        $prefix = $m[1] ?? null;
+                        $prefix  = $m[1] ?? null;
+                        $matched = $m[0] ?? null;
 
-                        if ($prefix === null) {
+                        if ($prefix === null || $matched === null) {
                             continue; // can't parse safely, skip entirely
                         }
 
                         // Split comma-separated clauses after the table name.
-                        $rest    = substr($sql, strlen($m[0]));
+                        $rest    = substr($sql, strlen($matched));
                         $clauses = preg_split('/,\s*(?=[A-Z])/i', $rest) ?: [$rest];
 
                         $safeClauses = array_filter(
                             $clauses,
-                            static fn (string $clause) => !preg_match('/^\s*DROP\b/i', trim($clause)),
+                            static fn (string $clause): bool => !preg_match('/^\s*DROP\b/i', trim($clause)),
                         );
 
                         if ($safeClauses === []) {
@@ -191,7 +212,17 @@ class Resolver
         // 'encrypted' is a custom type whose getSQLDeclaration() returns TEXT — mapping it
         // here lets DBAL correctly match the existing DB column and avoids spurious MODIFY
         // COLUMN statements that would attempt to narrow the column and truncate data.
-        $legacyTypeMap = ['array' => 'text', 'simple_array' => 'text', 'object' => 'text', 'encrypted' => 'text'];
+        // Map custom and removed DBAL types to their nearest native equivalent.
+        // 'array', 'simple_array', 'object' were removed in DBAL4.
+        // 'encrypted' is an app-defined type backed by TEXT.
+        // 'uuid' maps to 'guid' (DBAL4's native UUID type) if 'uuid' is not registered.
+        $legacyTypeMap = [
+            'array'        => 'text',
+            'simple_array' => 'text',
+            'object'       => 'text',
+            'encrypted'    => 'text',
+            'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
+        ];
 
         foreach ($fields as $field) {
             $fieldType  = $legacyTypeMap[$field['type']] ?? $field['type'];
@@ -229,7 +260,7 @@ class Resolver
                     'length', 'precision', 'scale', 'columnDefinition', 'comment',
                     'charset', 'collation', 'jsonb', 'platformOptions', 'customSchemaOptions',
                 ])),
-                fn ($v) => $v !== null,
+                fn (mixed $v): bool => $v !== null,
             );
 
             $tableObj->addColumn($this->escapeIdentifier($columnName), $fieldType, $dbalColumnOptions);
@@ -237,7 +268,7 @@ class Resolver
 
         if ($fieldIndexes['primary']) {
             $primaryKeys = array_values(array_map(
-                fn (string $v) => $this->escapeIdentifier($v),
+                $this->escapeIdentifier(...),
                 $fieldIndexes['primary'],
             ));
             $tableObj->setPrimaryKey($primaryKeys);
@@ -399,9 +430,12 @@ class Resolver
     public function dropTable(string $table): bool
     {
         try {
-            $this->mapper->connection()
-                ->createSchemaManager()
-                ->dropTable($this->escapeIdentifier($table));
+            $connection = $this->mapper->connection();
+            $connection->createSchemaManager()->dropTable($this->escapeIdentifier($table));
+
+            // Invalidate the cached schema so subsequent migrate() calls
+            // see the updated state after the table has been removed.
+            unset(self::$introspectedSchemas[spl_object_id($connection)]);
 
             return true;
         } catch (\Exception) {
@@ -460,7 +494,16 @@ class Resolver
             $foreignTableMapper    = $relation->mapper()->getMapper($relation->entityName());
             $foreignTable          = $foreignTableMapper->table();
             $foreignSchemaManager  = $foreignTableMapper->connection()->createSchemaManager();
-            $foreignTableExists    = $foreignSchemaManager->tablesExist([$foreignTable]);
+
+            // Use the cached introspected schema where available to avoid extra
+            // tablesExist() round-trips during the migrate() call chain.
+            $foreignCacheKey    = spl_object_id($foreignTableMapper->connection());
+            $foreignSchema      = self::$introspectedSchemas[$foreignCacheKey]
+                ?? null;
+            $foreignTableExists = $foreignSchema !== null
+                ? ($foreignSchema->hasTable($foreignTable) || $foreignSchema->hasTable($this->escapeIdentifier($foreignTable)))
+                : $foreignSchemaManager->tablesExist([$foreignTable]);
+
             $foreignTableNotExists = !$foreignTableExists;
             $foreignKeyNotExists   = true;
 

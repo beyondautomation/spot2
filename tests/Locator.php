@@ -10,17 +10,17 @@ namespace SpotTest;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 class Locator extends \PHPUnit\Framework\TestCase
 {
-    public function testGetConfig()
+    public function testGetConfig(): void
     {
         $cfg = new \Spot\Config();
         $spot = new \Spot\Locator($cfg);
-        $this->assertInstanceOf('Spot\Config', $spot->config());
+        $this->assertInstanceOf(\Spot\Config::class, $spot->config());
     }
 
-    public function testGetMapper()
+    public function testGetMapper(): void
     {
         $cfg = new \Spot\Config();
         $spot = new \Spot\Locator($cfg);
-        $this->assertInstanceOf('Spot\Mapper', $spot->mapper('SpotTest\Entity\Post'));
+        $this->assertInstanceOf(\Spot\Mapper::class, $spot->mapper(\SpotTest\Entity\Post::class));
     }
 }

@@ -15,6 +15,7 @@ class Zip extends Entity
 {
     public static ?string $table = 'zipcodes';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

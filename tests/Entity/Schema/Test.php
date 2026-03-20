@@ -15,6 +15,7 @@ class Test extends Entity
 {
     protected static ?string $table = 'spot_test.test_schema_test';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

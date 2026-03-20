@@ -18,7 +18,7 @@ class Transactions extends \PHPUnit\Framework\TestCase
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
 
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->build([
             'id' => 1,
             'email' => 'example@example.com',
@@ -39,62 +39,58 @@ class Transactions extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testInsertWithTransaction()
+    public function testInsertWithTransaction(): void
     {
         $post = new \SpotTest\Entity\Post();
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post->title = 'Test Post with Transaction';
         $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 
         // Save in transation
-        $mapper->transaction(function ($mapper) use ($post) {
+        $mapper->transaction(function ($mapper) use ($post): void {
             $result = $mapper->insert($post);
         });
 
         // Ensure save was successful
-        $this->assertInstanceOf('\SpotTest\Entity\Post', $mapper->first(['title' => $post->title]));
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $mapper->first(['title' => $post->title]));
     }
 
-    public function testInsertWithTransactionRollbackOnException()
+    public function testInsertWithTransactionRollbackOnException(): void
     {
         $post = new \SpotTest\Entity\Post();
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post->title = 'Rolledback';
         $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 
         // Save in transation
-        $phpunit = $this;
-
         try {
-            $mapper->transaction(function ($mapper) use ($post, $phpunit) {
+            $mapper->transaction(function ($mapper) use ($post): void {
                 $result = $mapper->insert($post);
 
                 // Throw exception AFTER save to trigger rollback
                 throw new \LogicException('Exceptions should trigger auto-rollback');
             });
-        } catch (\LogicException $e) {
+        } catch (\LogicException) {
             // Ensure record was NOT saved
             $this->assertFalse($mapper->first(['title' => $post->title]));
         }
     }
 
-    public function testInsertWithTransactionRollbackOnReturnFalse()
+    public function testInsertWithTransactionRollbackOnReturnFalse(): void
     {
         $post = new \SpotTest\Entity\Post();
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post->title = 'Rolledback';
         $post->body = '<p>This is a really awesome super-duper post -- in a TRANSACTION!.</p>';
         $post->date_created = new \DateTime();
         $post->author_id = 1;
 
         // Save in transation
-        $phpunit = $this;
-
-        $mapper->transaction(function ($mapper) use ($post, $phpunit) {
+        $mapper->transaction(function ($mapper) use ($post): false {
             $result = $mapper->insert($post);
 
             // Return false AFTER save to trigger rollback

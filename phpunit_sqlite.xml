@@ -17,6 +17,15 @@
             <directory suffix=".php">./tests</directory>
             <exclude>./tests/SchemaQuerySql.php</exclude>
             <exclude>./tests/Entity</exclude>
+            <exclude>./tests/Entity/MigrateTimestamp.php</exclude>
+            <exclude>./tests/Entity/MigrateStringNoLength.php</exclude>
+            <exclude>./tests/Entity/CircularA.php</exclude>
+            <exclude>./tests/Entity/CircularB.php</exclude>
+            <exclude>./tests/Entity/Article.php</exclude>
+            <exclude>./tests/Entity/Category.php</exclude>
+            <exclude>./tests/Entity/LegacyTypes.php</exclude>
+            <exclude>./tests/Entity/CustomPkParent.php</exclude>
+            <exclude>./tests/Entity/CustomPkChild.php</exclude>
             <exclude>./tests/Bootstrap.php</exclude>
             <exclude>./tests/init.php</exclude>
             <exclude>./tests/DriverSpecific.php</exclude>

@@ -18,7 +18,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
 
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->build([
             'id' => 1,
             'email' => 'example@example.com',
@@ -39,14 +39,15 @@ class CRUD extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testSampleNewsInsert()
+    public function testSampleNewsInsert(): \Spot\EntityInterface|false
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->get();
         $post->title = 'Test Post';
         $post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
         $post->author_id = 1;
         $post->date_created = new \DateTime();
+
         $result = $mapper->insert($post); // returns an id
 
         $this->assertTrue($result !== false);
@@ -54,9 +55,9 @@ class CRUD extends \PHPUnit\Framework\TestCase
         return $post;
     }
 
-    public function testSampleNewsInsertWithEmptyNonRequiredFields()
+    public function testSampleNewsInsertWithEmptyNonRequiredFields(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->get();
         $post->title = 'Test Post With Empty Values';
         $post->body = '<p>Test post here.</p>';
@@ -65,31 +66,32 @@ class CRUD extends \PHPUnit\Framework\TestCase
 
         try {
             $result = $mapper->insert($post); // returns an id
-        } catch (Exception $e) {
+        } catch (Exception) {
             $result = false;
         }
 
         $this->assertTrue($result !== false);
     }
 
-    public function testSelect()
+    public function testSelect(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->first(['title' => 'Test Post']);
 
         $this->assertTrue($post instanceof Entity\Post);
     }
 
-    public function testInsertThenSelectReturnsProperTypes()
+    public function testInsertThenSelectReturnsProperTypes(): void
     {
         // Insert Post into database
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->get();
         $post->title = 'Types Test';
         $post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
         $post->status = 1;
         $post->date_created = new \DateTime();
         $post->author_id = 1;
+
         $result = $mapper->insert($post); // returns an id
 
         // Read Post from database
@@ -101,34 +103,34 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertSame(1, $postData['status']);
     }
 
-    public function testSampleNewsUpdate()
+    public function testSampleNewsUpdate(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->first(['title' => 'Test Post']);
         $this->assertTrue($post instanceof Entity\Post);
 
         $post->title = 'Test Post Modified';
-        $result = $mapper->update($post); // returns boolean
+        $mapper->update($post); // returns boolean
 
         $postu = $mapper->first(['title' => 'Test Post Modified']);
-        $this->assertInstanceOf('SpotTest\Entity\Post', $postu);
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $postu);
     }
 
-    public function testSampleNewsDelete()
+    public function testSampleNewsDelete(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $mapper->first(['title' => 'Test Post Modified']);
         $result = $mapper->delete($post);
 
         $this->assertTrue((bool) $result);
     }
 
-    public function testMultipleConditionDelete()
+    public function testMultipleConditionDelete(): void
     {
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         for ($i = 1; $i <= 10; $i++) {
             $postMapper->insert([
-                'title' => ($i % 2 ? 'odd' : 'even'). '_title',
+                'title' => ($i % 2 !== 0 ? 'odd' : 'even'). '_title',
                 'author_id' => 1,
                 'body' => '<p>' . $i  . '_body</p>',
                 'status' => $i,
@@ -142,9 +144,9 @@ class CRUD extends \PHPUnit\Framework\TestCase
 
     }
 
-    public function testPostTagUpsert()
+    public function testPostTagUpsert(): void
     {
-        $tagMapper = test_spot_mapper('SpotTest\Entity\Tag');
+        $tagMapper = test_spot_mapper(\SpotTest\Entity\Tag::class);
         $tag = $tagMapper->build([
             'id' => 2145,
             'name' => 'Example Tag',
@@ -155,7 +157,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
             throw new \Exception('Unable to create tag: ' . var_export($tag->data(), true));
         }
 
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $postMapper->build([
             'id' => 1295,
             'title' => 'Example Title',
@@ -170,7 +172,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
             throw new \Exception('Unable to create post: ' . var_export($post->data(), true));
         }
 
-        $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
+        $postTagMapper = test_spot_mapper(\SpotTest\Entity\PostTag::class);
         $data = [
             'tag_id' => 2145,
             'post_id' => 1295,
@@ -189,9 +191,9 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertSame('blah blah', $postTag->random);
     }
 
-    public function testUniqueConstraintUpsert()
+    public function testUniqueConstraintUpsert(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Setting');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Setting::class);
         $data = [
             'skey' => 'my_setting',
             'svalue' => 'abc123',
@@ -210,26 +212,26 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertSame('abcdef123456', $entity->svalue);
     }
 
-    public function testTruncate()
+    public function testTruncate(): void
     {
-        $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
+        $postTagMapper = test_spot_mapper(\SpotTest\Entity\PostTag::class);
         $result = $postTagMapper->truncateTable();
         $this->assertTrue($result !== false, 'truncateTable() should not return false');
         $this->assertSame(0, $postTagMapper->all()->count(), 'Table should be empty after truncate');
     }
 
-    public function testDeleteAll()
+    public function testDeleteAll(): void
     {
-        $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
+        $postTagMapper = test_spot_mapper(\SpotTest\Entity\PostTag::class);
         $postTagMapper->delete();
         $this->assertSame(0, $postTagMapper->all()->count(), 'All records should be deleted');
     }
 
-    public function testStrictInsert()
+    public function testStrictInsert(): void
     {
         $this->expectException(\Spot\Exception::class);
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
-        $result = $postMapper->insert([
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
+        $postMapper->insert([
             'title' => 'irrelevant_title',
             'author_id' => 1,
             'body' => '<p>test_body</p>',
@@ -239,9 +241,9 @@ class CRUD extends \PHPUnit\Framework\TestCase
         ]);
     }
 
-    public function testNonStrictInsert()
+    public function testNonStrictInsert(): void
     {
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $result = $postMapper->insert([
             'title' => 'irrelevant_title',
             'author_id' => 1,
@@ -254,10 +256,10 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertTrue((bool) $result);
     }
 
-    public function testStrictUpdate()
+    public function testStrictUpdate(): void
     {
         $this->expectException(\Spot\Exception::class);
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $postMapper->create([
             'title' => 'irrelevant_title',
             'author_id' => 1,
@@ -267,12 +269,13 @@ class CRUD extends \PHPUnit\Framework\TestCase
         ]);
 
         $post->additional_field = 'Should cause an error';
-        $result = $postMapper->update($post);
+
+        $postMapper->update($post);
     }
 
-    public function testNonStrictUpdate()
+    public function testNonStrictUpdate(): void
     {
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $postMapper->create([
             'title' => 'irrelevant_title',
             'author_id' => 1,
@@ -289,10 +292,10 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $this->assertTrue(! $post->isModified());
     }
 
-    public function testStrictSave()
+    public function testStrictSave(): void
     {
         $this->expectException(\Spot\Exception::class);
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $postMapper->build([
             'title' => 'irrelevant_title',
             'author_id' => 1,
@@ -305,9 +308,9 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $postMapper->save($post);
     }
 
-    public function testNonStrictSave()
+    public function testNonStrictSave(): void
     {
-        $postMapper = test_spot_mapper('SpotTest\Entity\Post');
+        $postMapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = $postMapper->build([
             'title' => 'irrelevant_title',
             'author_id' => 1,
@@ -322,10 +325,10 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasOneNewEntitySaveRelation()
+    public function testHasOneNewEntitySaveRelation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
-        $searchMapper = test_spot_mapper('SpotTest\Entity\Event\Search');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
+        $searchMapper = test_spot_mapper(\SpotTest\Entity\Event\Search::class);
         $search = new Entity\Event\Search(['body' => 'Some body content']);
         $event = $mapper->build([
             'title' => 'Test',
@@ -335,6 +338,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
             'date_start' => new \DateTime(),
         ]);
         $event->relation('search', $search);
+
         $mapper->save($event, ['relations' => true]);
 
         $this->assertEquals($event->id, $search->event_id);
@@ -351,11 +355,11 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasOneRelatedEntityAlreadyExists()
+    public function testHasOneRelatedEntityAlreadyExists(): void
     {
 
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
-        $searchMapper = test_spot_mapper('SpotTest\Entity\Event\Search');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
+        $searchMapper = test_spot_mapper(\SpotTest\Entity\Event\Search::class);
         $data = [
             'title' => 'Test',
             'description' => 'Test description',
@@ -366,11 +370,13 @@ class CRUD extends \PHPUnit\Framework\TestCase
         $event = $mapper->build($data);
         $mapper->insert($mapper->build($data));
         $mapper->save($event);
+
         $search2 = new Entity\Event\Search(['body' => 'body2', 'event_id' => 1]);
         $searchMapper->save($search2);
 
         $savedEvent = $mapper->get($event->primaryKey());
         $savedEvent->relation('search', $search2);
+
         $mapper->save($savedEvent, ['relations' => true]);
         $savedEvent = $mapper->get($savedEvent->primaryKey());
         $this->assertEquals($savedEvent->search->id, $search2->id);
@@ -380,10 +386,10 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasOneIgnoreRelationNotLoaded()
+    public function testHasOneIgnoreRelationNotLoaded(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
-        $searchMapper = test_spot_mapper('SpotTest\Entity\Event\Search');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
+        $searchMapper = test_spot_mapper(\SpotTest\Entity\Event\Search::class);
         $event = $mapper->build([
             'title' => 'Test',
             'description' => 'Test description',
@@ -401,15 +407,16 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testBelongsToNewEntitySaveRelation()
+    public function testBelongsToNewEntitySaveRelation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $author = new \SpotTest\Entity\Author(['id' => 2, 'email' => 'test@example.com', 'password' => '123456']);
         $post = $mapper->build([
             'title' => 'Test',
             'body' => 'Test description',
         ]);
         $post->relation('author', $author);
+
         $mapper->save($post, ['relations' => true]);
 
         $this->assertEquals($post->author_id, $author->id);
@@ -424,10 +431,10 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasManyNewEntitySaveRelation()
+    public function testHasManyNewEntitySaveRelation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
-        $commentMapper = test_spot_mapper('SpotTest\Entity\Post\Comment');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
+        $commentMapper = test_spot_mapper(\SpotTest\Entity\Post\Comment::class);
         $comments = [];
         for ($i = 1; $i < 3; $i++) {
             $comments[] = new \SpotTest\Entity\Post\Comment([
@@ -436,12 +443,14 @@ class CRUD extends \PHPUnit\Framework\TestCase
                 'body' => '#'.$i.': Lorem ipsum is dolor.',
             ]);
         }
+
         $post = $mapper->build([
             'title' => 'Test',
             'body' => 'Test description',
             'author_id' => 1,
         ]);
         $post->relation('comments', new \Spot\Entity\Collection($comments));
+
         $mapper->save($post, ['relations' => true]);
         $this->assertFalse($post->isNew());
 
@@ -449,6 +458,7 @@ class CRUD extends \PHPUnit\Framework\TestCase
             $this->assertFalse($comment->isNew());
             $this->assertEquals($comment->post_id, $post->id);
         }
+
         //Test comment deleted from DB when removed from relation
         $removedComment = array_shift($comments);
         $post->relation('comments', new \Spot\Entity\Collection($comments));
@@ -466,16 +476,16 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasManyExistingEntitySaveRelation()
+    public function testHasManyExistingEntitySaveRelation(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $data = [
             'title' => 'Test',
             'body' => 'Test description',
             'author_id' => 1,
         ];
         $mapper->save($mapper->build(array_merge($data, ['id' => 99])));
-        $commentMapper = test_spot_mapper('SpotTest\Entity\Post\Comment');
+        $commentMapper = test_spot_mapper(\SpotTest\Entity\Post\Comment::class);
         $comments = [];
         for ($i = 1; $i < 3; $i++) {
             $comment = new \SpotTest\Entity\Post\Comment([
@@ -487,30 +497,34 @@ class CRUD extends \PHPUnit\Framework\TestCase
             $commentMapper->insert($comment);
             $comments[] = $comment;
         }
+
         $post = $mapper->build($data);
         $post->relation('comments', new \Spot\Entity\Collection($comments));
+
         $mapper->save($post, ['relations' => true]);
         $post = $mapper->get($post->primaryKey());
         $this->assertTrue(count($post->comments) === 2);
     }
 
     #[\PHPUnit\Framework\Attributes\Group('save-relations')]
-    public function testHasManyThroughRelationSave()
+    public function testHasManyThroughRelationSave(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
-        $postTagMapper = test_spot_mapper('SpotTest\Entity\PostTag');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
+        $postTagMapper = test_spot_mapper(\SpotTest\Entity\PostTag::class);
         $tags = [];
         for ($i = 1; $i < 3; $i++) {
             $tags[] = new \SpotTest\Entity\Tag([
                 'name' => 'Tag #'.$i,
             ]);
         }
+
         $post = $mapper->build([
             'title' => 'Test',
             'body' => 'Test description',
             'author_id' => 1,
         ]);
         $post->relation('tags', new \Spot\Entity\Collection($tags));
+
         $mapper->save($post, ['relations' => true]);
 
         $this->assertFalse($post->isNew());
@@ -536,11 +550,11 @@ class CRUD extends \PHPUnit\Framework\TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Depends('testSampleNewsInsert')]
-    public function testQueryWithDateTimeObjectValue($post)
+    public function testQueryWithDateTimeObjectValue($post): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $results = $mapper->where(['date_created <=' => new \DateTime()])->toArray();
 
-        $this->assertTrue(count($results) > 0);
+        $this->assertTrue($results !== []);
     }
 }

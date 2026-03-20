@@ -10,9 +10,10 @@ use Spot\Locator;
 
 class Laravel extends ServiceProvider
 {
-    protected $config = [];
+    /** @var array<string, mixed> */
+    protected array $config = [];
 
-    public function __construct($app)
+    public function __construct(mixed $app)
     {
         $this->app = $app;
 
@@ -31,9 +32,9 @@ class Laravel extends ServiceProvider
         $this->config = $config;
     }
 
-    public function register()
+    public function register(): void
     {
-        $this->app['spot'] = function () {
+        $this->app['spot'] = function (): \Spot\Locator {
             $config = new Config();
             $config->addConnection('default', $this->config);
 

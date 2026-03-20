@@ -10,9 +10,9 @@ namespace SpotTest;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 class Manager extends \PHPUnit\Framework\TestCase
 {
-    public function testNotnullOverride()
+    public function testNotnullOverride(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\NotNullOverride');
+        $mapper = test_spot_mapper(\SpotTest\Entity\NotNullOverride::class);
         $manager = $mapper->entityManager();
         $fields = $manager->fields();
 
@@ -21,9 +21,9 @@ class Manager extends \PHPUnit\Framework\TestCase
         $this->assertFalse($fields['data3']['notnull']); // Should override to false
     }
 
-    public function testMultipleIndexedField()
+    public function testMultipleIndexedField(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\MultipleIndexedField');
+        $mapper = test_spot_mapper(\SpotTest\Entity\MultipleIndexedField::class);
         $manager = $mapper->entityManager();
         $fieldKeys = $manager->fieldKeys();
 

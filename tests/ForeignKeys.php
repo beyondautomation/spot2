@@ -26,9 +26,9 @@ class ForeignKeys extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testForeignKeyMigration()
+    public function testForeignKeyMigration(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $entity = $mapper->entity();
         $table = $entity::table();
         $schemaManager = $mapper->connection()->createSchemaManager();

@@ -15,6 +15,7 @@ class DefaultValue extends \Spot\Entity
 {
     protected static ?string $table = 'test_defaultvalue';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

@@ -21,6 +21,7 @@ class Type extends \Spot\Entity
 
     protected static $_datasource = 'test_types';
 
+    #[\Override]
     public static function fields(): array
     {
         return self::$_fields;

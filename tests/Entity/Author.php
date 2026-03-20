@@ -13,6 +13,7 @@ class Author extends \Spot\Entity
 {
     protected static ?string $table = 'test_authors';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

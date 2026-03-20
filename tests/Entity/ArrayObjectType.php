@@ -14,6 +14,7 @@ class ArrayObjectType extends \Spot\Entity
 {
     protected static ?string $table = 'test_array_object';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

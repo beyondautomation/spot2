@@ -34,11 +34,6 @@ class Mapper implements MapperInterface
      */
     protected static array $eventEmitter = [];
 
-    protected Locator $locator;
-
-    /** @var string Fully-qualified entity class name. */
-    protected string $entityName;
-
     /** @var array<string> Relations to eager-load on the next query. */
     protected array $withRelations = [];
 
@@ -55,12 +50,27 @@ class Mapper implements MapperInterface
      * @param Locator $locator    The service locator / config container.
      * @param string  $entityName Fully-qualified entity class name.
      */
-    public function __construct(Locator $locator, string $entityName)
+    public function __construct(protected Locator $locator, protected string $entityName)
     {
-        $this->locator    = $locator;
-        $this->entityName = $entityName;
-
         $this->loadEvents();
+    }
+
+    /**
+     * Reset all static mapper caches — for use in tests only.
+     *
+     * Clears the per-entity Manager and EventEmitter singletons so that
+     * dynamically-defined entity classes (anonymous classes in tests) do not
+     * retain stale metadata between test methods.
+     *
+     * @internal Not for production use.
+     */
+    public static function resetStaticCaches(): void
+    {
+        static::$entityManager = [];
+        // Note: $eventEmitter is intentionally NOT reset here. Events are
+        // registered once per entity class and do not affect schema correctness.
+        // Resetting the emitter would cause events to silently not fire for
+        // mapper instances cached in the Locator.
     }
 
     // =========================================================================
@@ -225,7 +235,7 @@ class Mapper implements MapperInterface
     #[\Override]
     public function prepareEntity(EntityInterface $entity): bool|null
     {
-        if (count($this->entityManager()->fields()) > 0) {
+        if ($this->entityManager()->fields() !== []) {
             $this->loadRelations($entity);
 
             return true;
@@ -240,14 +250,10 @@ class Mapper implements MapperInterface
      */
     public function prepareEntityAfterLoad(EntityInterface $entity): bool|null
     {
-        if (count($this->entityManager()->fields()) > 0) {
+        if ($this->entityManager()->fields() !== []) {
             $this->loadRelations($entity);
 
-            if (false === $this->eventEmitter()->emit('afterLoad', [$entity, $this])) {
-                return false;
-            }
-
-            return true;
+            return $this->eventEmitter()->emit('afterLoad', [$entity, $this]);
         }
 
         return null;
@@ -325,9 +331,9 @@ class Mapper implements MapperInterface
     {
         $pkField = $this->entityManager()->primaryKeyField();
 
-        if (empty($pkField)) {
+        if (in_array($pkField, ['', '0', false], true)) {
             throw new Exception(
-                get_class($entity) . ' has no primary key field. '
+                $entity::class . ' has no primary key field. '
                 . 'Please mark one of its fields as autoincrement or primary.',
             );
         }
@@ -400,7 +406,7 @@ class Mapper implements MapperInterface
     {
         $connectionName = $connectionName ?: $this->entityManager()->connection();
 
-        if (empty($connectionName)) {
+        if (in_array($connectionName, [null, '', '0'], true)) {
             return $this->config()->defaultConnection();
         }
 
@@ -420,7 +426,7 @@ class Mapper implements MapperInterface
     #[\Override]
     public function connectionIs(string $type): bool
     {
-        return str_contains(strtolower(get_class($this->connection()->getDriver())), $type);
+        return str_contains(strtolower($this->connection()->getDriver()::class), $type);
     }
 
     // =========================================================================
@@ -475,7 +481,7 @@ class Mapper implements MapperInterface
     #[\Override]
     public function first(array $conditions = []): EntityInterface|false
     {
-        $query = empty($conditions)
+        $query = $conditions === []
             ? $this->select()->limit(1)
             : $this->where($conditions)->limit(1);
 
@@ -521,7 +527,7 @@ class Mapper implements MapperInterface
         /** @var Entity\Collection $collection */
         $collection = new $this->_collectionClass($results, $resultsIdentities, $entityName);
 
-        if (empty($with) || count($collection) === 0) {
+        if ($with === [] || count($collection) === 0) {
             return $collection;
         }
 
@@ -564,7 +570,7 @@ class Mapper implements MapperInterface
         if (!$this->primaryKey($entity)) {
             $entityDefaultValues = $this->entityManager()->fieldDefaultValues();
 
-            if (count($entityDefaultValues) > 0) {
+            if ($entityDefaultValues !== []) {
                 $entity->data($entityDefaultValues);
             }
         }
@@ -605,7 +611,7 @@ class Mapper implements MapperInterface
         }
 
         throw new Exception(
-            'Unable to insert new ' . get_class($entity)
+            'Unable to insert new ' . $entity::class
             . ' - Errors: ' . var_export($entity->errors(), true),
         );
     }
@@ -653,7 +659,7 @@ class Mapper implements MapperInterface
         if (!($entity instanceof $entityName)) {
             throw new \InvalidArgumentException(
                 'Provided entity must be instance of ' . $entityName
-                . ', instance of ' . get_class($entity) . ' given.',
+                . ', instance of ' . $entity::class . ' given.',
             );
         }
 
@@ -674,7 +680,7 @@ class Mapper implements MapperInterface
     public function insert(EntityInterface|array $entity, array $options = []): mixed
     {
         if (is_object($entity)) {
-            $entityName = get_class($entity);
+            $entityName = $entity::class;
         } else {
             $entityName = $this->entity();
             $newEntity  = $this->get();
@@ -682,6 +688,7 @@ class Mapper implements MapperInterface
             if ($newEntity === false) {
                 return false;
             }
+
             /** @var EntityInterface $entity */
             $entity = $newEntity->data($entity) ?? $newEntity;
         }
@@ -693,15 +700,13 @@ class Mapper implements MapperInterface
             return false;
         }
 
-        if (!isset($options['validate']) || $options['validate'] !== false) {
-            if (!$this->validate($entity, $options)) {
-                return false;
-            }
+        if ((!isset($options['validate']) || $options['validate'] !== false) && !$this->validate($entity, $options)) {
+            return false;
         }
 
         $data = (array) $entity->data(null, true, false);
 
-        if (count($data) === 0) {
+        if ($data === []) {
             return false;
         }
 
@@ -716,9 +721,9 @@ class Mapper implements MapperInterface
         $extraData    = array_diff_key($data, $entityFields);
         $data         = array_intersect_key($data, $entityFields);
 
-        if ((!isset($options['strict']) || $options['strict'] === true) && count($extraData) > 0) {
+        if ((!isset($options['strict']) || $options['strict'] === true) && $extraData !== []) {
             throw new Exception(
-                "Insert error: Unknown fields provided for $entityName: '"
+                "Insert error: Unknown fields provided for {$entityName}: '"
                 . implode("', '", array_keys($extraData)) . "'",
             );
         }
@@ -731,7 +736,7 @@ class Mapper implements MapperInterface
 
         $result = $this->resolver()->create($this->table(), $data);
 
-        if ($result) {
+        if ($result !== 0) {
             $connection = $this->connection();
 
             if (array_key_exists($pkField, $data)) {
@@ -755,6 +760,7 @@ class Mapper implements MapperInterface
                             "SELECT pg_get_serial_sequence({$quotedTable}, {$quotedColumn})",
                         ) ?: null;
                     }
+
                     $result = $sequenceName !== null
                         ? $connection->fetchOne('SELECT currval(' . $connection->quote($sequenceName) . ')')
                         : $connection->lastInsertId();
@@ -776,11 +782,9 @@ class Mapper implements MapperInterface
             $this->prepareEntityAfterLoad($entity);
         }
 
-        if (
-            false === $this->eventEmitter()->emit('afterSave', [$entity, $this, &$result])
-            || false === $this->eventEmitter()->emit('afterInsert', [$entity, $this, &$result])
-        ) {
-            $result = false;
+        if (false === $this->eventEmitter()->emit('afterSave', [$entity, $this, &$result])
+        || false === $this->eventEmitter()->emit('afterInsert', [$entity, $this, &$result])) {
+            return false;
         }
 
         return $result;
@@ -803,10 +807,8 @@ class Mapper implements MapperInterface
             return false;
         }
 
-        if (!isset($options['validate']) || $options['validate'] !== false) {
-            if (!$this->validate($entity, $options)) {
-                return false;
-            }
+        if ((!isset($options['validate']) || $options['validate'] !== false) && !$this->validate($entity, $options)) {
+            return false;
         }
 
         if (isset($options['relations']) && $options['relations'] === true) {
@@ -819,16 +821,16 @@ class Mapper implements MapperInterface
         $extraData    = array_diff_key($data, $entityFields);
         $data         = array_intersect_key($data, $entityFields);
 
-        if ((!isset($options['strict']) || $options['strict'] === true) && count($extraData) > 0) {
+        if ((!isset($options['strict']) || $options['strict'] === true) && $extraData !== []) {
             throw new Exception(
-                "Update error: Unknown fields provided for $entityName: '"
+                "Update error: Unknown fields provided for {$entityName}: '"
                 . implode("', '", array_keys($extraData)) . "'",
             );
         }
 
         $data = $this->convertToDatabaseValues($entityName, $data);
 
-        if (count($data) > 0) {
+        if ($data !== []) {
             $result = $this->resolver()->update(
                 $this->table(),
                 $data,
@@ -879,6 +881,7 @@ class Mapper implements MapperInterface
             if (!$existingEntity) {
                 return $entity;
             }
+
             $existingEntity->data($dataUpdate);
             $entity = $existingEntity;
             $this->update($entity);
@@ -955,6 +958,7 @@ class Mapper implements MapperInterface
             if (isset($conditions['id'])) {
                 $entityOrArray = $this->first([$this->primaryKeyField() => $conditions['id']]);
             }
+
             $beforeEvent = 'beforeDeleteConditions';
             $afterEvent  = 'afterDeleteConditions';
         }
@@ -989,7 +993,13 @@ class Mapper implements MapperInterface
         $fields    = $entityName::fields();
         $platform  = $this->connection()->getDatabasePlatform();
 
-        $legacyTypeMap = ['array' => 'text', 'simple_array' => 'text', 'object' => 'text'];
+        $legacyTypeMap = [
+            'array'        => 'text',
+            'simple_array' => 'text',
+            'object'       => 'text',
+            'encrypted'    => 'text',
+            'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
+        ];
 
         foreach ($data as $field => $value) {
             $originalFieldType = $fields[$field]['type'];
@@ -998,6 +1008,7 @@ class Mapper implements MapperInterface
             if (isset($legacyTypeMap[$originalFieldType]) && (is_array($value) || is_object($value))) {
                 $value = serialize($value);
             }
+
             $fieldType   = $legacyTypeMap[$originalFieldType] ?? $originalFieldType;
             $typeHandler = Type::getType($fieldType);
 
@@ -1033,7 +1044,13 @@ class Mapper implements MapperInterface
 
         foreach ($data as $field => $value) {
             if (isset($entityData[$field])) {
-                $legacyTypes  = ['array' => 'text', 'simple_array' => 'text', 'object' => 'text'];
+                $legacyTypes  = [
+                    'array'        => 'text',
+                    'simple_array' => 'text',
+                    'object'       => 'text',
+                    'encrypted'    => 'text',
+                    'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
+                ];
                 $originalType = $fields[$field]['type'];
                 $fieldTypePHP = $legacyTypes[$originalType] ?? $originalType;
                 $typeHandler  = Type::getType($fieldTypePHP);
@@ -1044,6 +1061,7 @@ class Mapper implements MapperInterface
                     $unserialized = @unserialize($phpValue);
                     $phpValue     = $unserialized !== false ? $unserialized : $phpValue;
                 }
+
                 $phpData[$field] = $phpValue;
             } else {
                 // Extra columns from custom SQL (e.g. calculated values)
@@ -1076,6 +1094,8 @@ class Mapper implements MapperInterface
     {
         $connection = $this->connection($connectionName);
 
+        $result = null;
+
         try {
             $connection->beginTransaction();
             $result = $work($this);
@@ -1085,10 +1105,10 @@ class Mapper implements MapperInterface
             } else {
                 $connection->commit();
             }
-        } catch (\Exception $e) {
+        } catch (\Exception $exception) {
             $connection->rollBack();
 
-            throw $e;
+            throw $exception;
         }
 
         return $result;
@@ -1187,7 +1207,9 @@ class Mapper implements MapperInterface
                             $params   = is_array($ruleName) ? $ruleName : [$ruleName];
                             $ruleName = $rule;
                         }
-                        call_user_func_array([$v, 'rule'], array_merge([$ruleName, $field], $params));
+
+                        /** @psalm-suppress TooFewArguments */
+                        $v->rule(...array_merge([$ruleName, $field], $params));
                     }
                 }
             }
@@ -1242,7 +1264,7 @@ class Mapper implements MapperInterface
             if (!($singleEntity instanceof Entity)) {
                 throw new Exception(
                     "Relation object must be instance of 'Spot\\Entity', given '"
-                    . (is_object($singleEntity) ? get_class($singleEntity) : 'false') . "'",
+                    . (is_object($singleEntity) ? $singleEntity::class : 'false') . "'",
                 );
             }
 
@@ -1251,14 +1273,20 @@ class Mapper implements MapperInterface
             if ($relationObject === false) {
                 throw new Exception(
                     "Invalid relation name eager-loaded in 'with' clause: "
-                    . "No relation on $entityName with name '$relationName'",
+                    . "No relation on {$entityName} with name '{$relationName}'",
                 );
+            }
+
+            // After eager-loading, relation() may return null (sentinel for loaded-but-empty).
+            // Re-fetch from the first entity's unloaded relation to get the proxy object.
+            if ($relationObject === null) {
+                $relationObject = $singleEntity->relations($this, $singleEntity)[$relationName] ?? null;
             }
 
             if (!($relationObject instanceof Relation\RelationAbstract)) {
                 throw new Exception(
                     "Relation object must be instance of 'Spot\\Relation\\RelationAbstract', given '"
-                    . get_class($relationObject) . "'",
+                    . (get_debug_type($relationObject)) . "'",
                 );
             }
 
@@ -1288,7 +1316,7 @@ class Mapper implements MapperInterface
                 if ($relatedEntity instanceof EntityInterface) {
                     $errorsRelated = $this->validateRelatedEntity($relatedEntity, $entity, $relation);
 
-                    if (count($errorsRelated)) {
+                    if ($errorsRelated !== []) {
                         $entity->errors([$relationName => $errorsRelated], false);
                     }
                 }
@@ -1308,12 +1336,12 @@ class Mapper implements MapperInterface
 
                         $errorsRelated = $this->validateRelatedEntity($related, $entity, $relation);
 
-                        if (count($errorsRelated)) {
+                        if ($errorsRelated !== []) {
                             $errors[$key] = $errorsRelated;
                         }
                     }
 
-                    if (count($errors)) {
+                    if ($errors !== []) {
                         /** @phpstan-ignore-next-line argument.type */
                         $entity->errors([$relationName => $errors], false);
                     }
@@ -1337,7 +1365,7 @@ class Mapper implements MapperInterface
         $tainted       = $relatedEntity->isNew() || $relatedEntity->isModified();
         $errorsRelated = [];
 
-        if ($tainted && !$this->getMapper(get_class($relatedEntity))->validate($relatedEntity)) {
+        if ($tainted && !$this->getMapper($relatedEntity::class)->validate($relatedEntity)) {
             $errorsRelated = $relatedEntity->errors();
 
             if (

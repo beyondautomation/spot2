@@ -89,7 +89,8 @@ class HasMany extends RelationAbstract implements \Countable, \IteratorAggregate
                     $related->set($this->foreignKey(), $entity->primaryKey());
                     $lastResult = $relatedMapper->save($related, $options);
                 }
-                $relatedIds[] = $related->id;
+
+                $relatedIds[] = $related->primaryKey();
             }
 
             foreach ($oldEntities as $oldRelatedEntity) {
@@ -102,7 +103,7 @@ class HasMany extends RelationAbstract implements \Countable, \IteratorAggregate
         if (count($deletedIds) || $relatedEntities === false) {
             $conditions = [$this->foreignKey() => $entity->primaryKey()];
 
-            if (count($deletedIds)) {
+            if ($deletedIds !== []) {
                 $conditions[$this->localKey() . ' :in'] = $deletedIds;
             }
 

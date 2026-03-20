@@ -45,7 +45,7 @@ class Locator
      */
     public function config(?Config $cfg = null): Config
     {
-        if ($cfg !== null) {
+        if ($cfg instanceof \Spot\Config) {
             $this->config = $cfg;
         }
 

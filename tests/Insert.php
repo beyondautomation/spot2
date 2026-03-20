@@ -18,7 +18,7 @@ class Insert extends \PHPUnit\Framework\TestCase
             test_spot_mapper('\SpotTest\Entity\\' . $entity)->migrate();
         }
 
-        $authorMapper = test_spot_mapper('SpotTest\Entity\Author');
+        $authorMapper = test_spot_mapper(\SpotTest\Entity\Author::class);
         $author = $authorMapper->build([
             'id' => 1,
             'email' => 'example@example.com',
@@ -39,10 +39,10 @@ class Insert extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testInsertPostEntity()
+    public function testInsertPostEntity(): void
     {
         $post = new \SpotTest\Entity\Post();
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post->title = 'Test Post';
         $post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
         $post->date_created = new \DateTime();
@@ -55,31 +55,33 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertTrue(! $post->isModified());
     }
 
-    public function testInsertPostEntitySequencesAreCorrect()
+    public function testInsertPostEntitySequencesAreCorrect(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
 
         $post = new Entity\Post();
         $post->title = 'Test Post';
         $post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
         $post->date_created = new \DateTime();
         $post->author_id = 1;
-        $result = $mapper->insert($post);
+
+        $mapper->insert($post);
 
         $post2 = new Entity\Post();
         $post2->title = 'Test Post';
         $post2->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
         $post2->date_created = new \DateTime();
         $post2->author_id = 1;
-        $result = $mapper->insert($post2);
+
+        $mapper->insert($post2);
 
         // Ensure sequence is incrementing number
         $this->assertNotEquals($post->id, $post2->id);
     }
 
-    public function testInsertPostArray()
+    public function testInsertPostArray(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = [
             'title' => 'Test Post',
             'author_id' => 1,
@@ -91,9 +93,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertTrue($result !== false);
     }
 
-    public function testCreateInsertsEntity()
+    public function testCreateInsertsEntity(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = [
             'title' => 'Test Post 101',
             'author_id' => 1,
@@ -105,9 +107,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertTrue($result !== false);
     }
 
-    public function testBuildReturnsEntityUnsaved()
+    public function testBuildReturnsEntityUnsaved(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = [
             'title' => 'Test Post 100',
             'author_id' => 1,
@@ -116,14 +118,14 @@ class Insert extends \PHPUnit\Framework\TestCase
         ];
         $result = $mapper->build($post);
 
-        $this->assertInstanceOf('\SpotTest\Entity\Post', $result);
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $result);
         $this->assertTrue($result->isNew());
         $this->assertNull($result->id);
     }
 
-    public function testCreateReturnsEntity()
+    public function testCreateReturnsEntity(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = [
             'title' => 'Test Post 101',
             'author_id' => 1,
@@ -132,29 +134,29 @@ class Insert extends \PHPUnit\Framework\TestCase
         ];
         $result = $mapper->create($post);
 
-        $this->assertInstanceOf('\SpotTest\Entity\Post', $result);
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $result);
         $this->assertFalse($result->isNew());
     }
 
-    public function testInsertNewEntitySavesWithIdAlreadySet()
+    public function testInsertNewEntitySavesWithIdAlreadySet(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Post');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Post::class);
         $post = new \SpotTest\Entity\Post([
             'id' => 2001,
             'title' => 'Test Post 2001',
             'author_id' => 1,
             'body' => '<p>Test Post 2001</p>',
         ]);
-        $result = $mapper->insert($post);
+        $mapper->insert($post);
         $entity = $mapper->get($post->id);
 
-        $this->assertInstanceOf('\SpotTest\Entity\Post', $entity);
+        $this->assertInstanceOf(\SpotTest\Entity\Post::class, $entity);
         $this->assertFalse($entity->isNew());
     }
 
-    public function testInsertEventRunsValidation()
+    public function testInsertEventRunsValidation(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $event = new \SpotTest\Entity\Event([
             'title' => 'Test Event 1',
             'description' => 'Test Description',
@@ -166,9 +168,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertContains('Type is required', $event->errors('type'));
     }
 
-    public function testSaveEventRunsAfterInsertHook()
+    public function testSaveEventRunsAfterInsertHook(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $event = new \SpotTest\Entity\Event([
             'title' => 'Test Event 1',
             'description' => 'Test Description',
@@ -181,9 +183,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertTrue($result !== false);
     }
 
-    public function testInsertEventRunsDateValidation()
+    public function testInsertEventRunsDateValidation(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $event = new \SpotTest\Entity\Event([
             'title' => 'Test Event 1',
             'description' => 'Test Description',
@@ -197,9 +199,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertStringContainsString('Date Start must be date after', $dsErrors[0]);
     }
 
-    public function testInsertEventRunsTypeOptionsValidation()
+    public function testInsertEventRunsTypeOptionsValidation(): void
     {
-        $mapper = test_spot_mapper('\SpotTest\Entity\Event');
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
         $event = new \SpotTest\Entity\Event([
             'title' => 'Test Event 1',
             'description' => 'Test Description',
@@ -212,20 +214,20 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertEquals(['Type contains invalid value'], $event->errors('type'));
     }
 
-    public function testCreateWithErrorsThrowsException()
+    public function testCreateWithErrorsThrowsException(): void
     {
         $this->expectException(\Spot\Exception::class);
-        $mapper = test_spot_mapper('SpotTest\Entity\Event');
-        $event = $mapper->create([
+        $mapper = test_spot_mapper(\SpotTest\Entity\Event::class);
+        $mapper->create([
             'title' => 'Test Event 1',
             'description' => 'Test Description',
             'date_start' => new \DateTime('+1 day'),
         ]);
     }
 
-    public function testInsertWithoutAutoIncrement()
+    public function testInsertWithoutAutoIncrement(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\NoSerial');
+        $mapper = test_spot_mapper(\SpotTest\Entity\NoSerial::class);
         $entity = $mapper->build([
             'id' => 101,
             'data' => 'Testing insert',
@@ -235,9 +237,9 @@ class Insert extends \PHPUnit\Framework\TestCase
         $this->assertEquals(101, $result);
     }
 
-    public function testInsertWithoutAutoIncrementWithoutPKValueHasValidationError()
+    public function testInsertWithoutAutoIncrementWithoutPKValueHasValidationError(): void
     {
-        $mapper = test_spot_mapper('SpotTest\Entity\NoSerial');
+        $mapper = test_spot_mapper(\SpotTest\Entity\NoSerial::class);
         $entity = $mapper->build([
             'data' => 'Testing insert',
         ]);

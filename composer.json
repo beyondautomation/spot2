@@ -31,7 +31,9 @@
         "friendsofphp/php-cs-fixer": "^3.0",
         "phpstan/phpstan": "^1.0 || ^2.0",
         "phpunit/phpunit": "^10.0 || ^11.0",
-        "rector/rector": "^1.0 || ^2.0"
+        "rector/rector": "^1.0 || ^2.0",
+        "vimeo/psalm": "^5.0 || ^6.0",
+        "infection/infection": "^0.27 || ^0.28 || ^0.29"
     },
     "autoload": {
         "psr-4": {
@@ -46,35 +48,55 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "infection/extension-installer": true
         }
     },
     "scripts": {
-        "test": "./vendor/bin/phpunit --configuration phpunit_sqlite.xml",
-        "test:mysql": "./vendor/bin/phpunit --configuration phpunit_mysql.xml",
-        "test:pgsql": "./vendor/bin/phpunit --configuration phpunit_pgsql.xml",
-        "test:coverage": "./vendor/bin/phpunit --configuration phpunit_sqlite.xml --coverage-html coverage/",
-        "cs:check": "./vendor/bin/php-cs-fixer check --config .php-cs-fixer.php --diff",
-        "cs:fix": "./vendor/bin/php-cs-fixer fix --config .php-cs-fixer.php",
-        "analyse": "./vendor/bin/phpstan analyse --configuration phpstan.neon",
-        "rector:dry": "./vendor/bin/rector process --dry-run",
-        "rector:fix": "./vendor/bin/rector process",
+        "test": "vendor/bin/phpunit --configuration phpunit_sqlite.xml",
+        "test:mysql": "vendor/bin/phpunit --configuration phpunit_mysql.xml",
+        "test:pgsql": "vendor/bin/phpunit --configuration phpunit_pgsql.xml",
+        "test:coverage": "vendor/bin/phpunit --configuration phpunit_sqlite.xml --coverage-html coverage/",
+        "cs": "vendor/bin/php-cs-fixer check --config .php-cs-fixer.php --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix --config .php-cs-fixer.php",
+        "analyse": "vendor/bin/phpstan analyse --configuration phpstan.neon",
+        "psalm": "vendor/bin/psalm",
+        "psalm:baseline": "vendor/bin/psalm --set-baseline=psalm-baseline.xml",
+        "lint": "php lint.php",
+        "refactor:dry": "vendor/bin/rector process --dry-run",
+        "refactor": "vendor/bin/rector process",
+        "mutation": "vendor/bin/infection --configuration=infection.json --threads=4",
         "check": [
-            "@cs:check",
+            "@cs",
             "@analyse",
+            "@psalm",
             "@test"
-        ]
+        ],
+        "check:full": [
+            "@cs",
+            "@analyse",
+            "@psalm",
+            "@test",
+            "@mutation"
+        ],
+        "audit": "php audit_schema.php"
     },
     "scripts-descriptions": {
-        "test": "Run SQLite tests (no setup needed)",
-        "test:mysql": "Run MySQL tests (set SPOT_DB_DSN=mysql://user:pass@host/db to override default)",
-        "test:pgsql": "Run PostgreSQL tests (set SPOT_DB_DSN=pgsql://user:pass@host/db to override default)",
+        "test": "Run SQLite test suite (no external setup required)",
+        "test:mysql": "Run MySQL tests \u2014 set SPOT_DB_DSN=mysql://user:pass@host/db",
+        "test:pgsql": "Run PostgreSQL tests \u2014 set SPOT_DB_DSN=pgsql://user:pass@host/db",
         "test:coverage": "Run tests and generate HTML coverage report in coverage/",
-        "cs:check": "Check code style without modifying files",
+        "cs": "PSR-12 code style check (read-only)",
         "cs:fix": "Auto-fix code style violations",
-        "analyse": "Run PHPStan static analysis",
-        "rector:dry": "Preview Rector refactors without applying them",
-        "rector:fix": "Apply Rector refactors",
-        "check": "Run cs:check + analyse + test in sequence (CI pipeline)"
+        "analyse": "PHPStan level static analysis",
+        "psalm": "Psalm static analysis",
+        "psalm:baseline": "Regenerate Psalm baseline after a large refactor",
+        "lint": "PHP syntax check on all source and test files",
+        "refactor:dry": "Preview Rector refactoring suggestions (no changes written)",
+        "refactor": "Apply Rector refactoring",
+        "mutation": "Mutation testing via Infection (requires Xdebug or PCOV)",
+        "check": "Full pipeline: cs + PHPStan + Psalm + test",
+        "check:full": "Full pipeline + mutation testing (slower, needs coverage driver)",
+        "audit": "Pre-production schema audit against a DB copy \u2014 see audit_schema.php --help"
     }
 }

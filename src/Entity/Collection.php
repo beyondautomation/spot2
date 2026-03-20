@@ -20,38 +20,18 @@ use Spot\EntityInterface;
  * @implements \Iterator<int, EntityInterface>
  * @implements \ArrayAccess<int, EntityInterface>
  */
-class Collection implements \Iterator, \Countable, \ArrayAccess, \JsonSerializable
+class Collection implements \Iterator, \Countable, \ArrayAccess, \JsonSerializable, \Stringable
 {
-    /**
-     * The entity objects in this collection.
-     *
-     * @var array<EntityInterface>
-     */
-    protected array $results = [];
-
-    /**
-     * Primary key values for all entities in the collection.
-     *
-     * @var array<mixed>
-     */
-    protected array $resultsIdentities = [];
-
-    /** @var string|null Fully-qualified entity class name. */
-    protected ?string $entityName = null;
-
     /**
      * @param array<EntityInterface> $results           Pre-loaded entity objects.
      * @param array<mixed>           $resultsIdentities Primary key values.
      * @param string|null            $entityName        Entity class name.
      */
     public function __construct(
-        array $results = [],
-        array $resultsIdentities = [],
-        ?string $entityName = null,
+        protected array $results = [],
+        protected array $resultsIdentities = [],
+        protected ?string $entityName = null,
     ) {
-        $this->results = $results;
-        $this->resultsIdentities = $resultsIdentities;
-        $this->entityName = $entityName;
     }
 
     /**
@@ -59,7 +39,7 @@ class Collection implements \Iterator, \Countable, \ArrayAccess, \JsonSerializab
      */
     public function __toString(): string
     {
-        return __CLASS__ . '[' . $this->count() . ']';
+        return self::class . '[' . $this->count() . ']';
     }
 
     /**
@@ -126,6 +106,7 @@ class Collection implements \Iterator, \Countable, \ArrayAccess, \JsonSerializab
             if ($onlyUnique && in_array($entity->toArray(), $collectionData, true)) {
                 continue;
             }
+
             $this->add($entity);
         }
 
@@ -268,7 +249,10 @@ class Collection implements \Iterator, \Countable, \ArrayAccess, \JsonSerializab
     #[\Override]
     public function valid(): bool
     {
-        return current($this->results) !== false;
+        // key() returns null when the internal pointer is past the end of the array.
+        // Using current() !== false would incorrectly stop iteration if an entity
+        // evaluated to false — key() is always the correct SPL validity check.
+        return key($this->results) !== null;
     }
 
     // =========================================================================

@@ -10,47 +10,47 @@ namespace SpotTest;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 class Config extends \PHPUnit\Framework\TestCase
 {
-    public function testAddConnectionSqlite()
+    public function testAddConnectionSqlite(): void
     {
         $cfg = new \Spot\Config();
         $dsnp = $cfg->parseDsn('sqlite::memory:');
         $this->assertEquals('pdo_sqlite', $dsnp['driver']);
 
         $adapter = $cfg->addConnection('test_sqlite', 'sqlite::memory:');
-        $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
+        $this->assertInstanceOf(\Doctrine\DBAL\Connection::class, $adapter);
     }
 
-    public function testAddSqliteConnectionWithDSNString()
+    public function testAddSqliteConnectionWithDSNString(): void
     {
         $cfg = new \Spot\Config();
         $adapter = $cfg->addConnection('test_sqlite', 'sqlite::memory:');
-        $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
+        $this->assertInstanceOf(\Doctrine\DBAL\Connection::class, $adapter);
     }
 
-    public function testAddConnectionWithDSNString()
+    public function testAddConnectionWithDSNString(): void
     {
         $cfg = new \Spot\Config();
         $adapter = $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
-        $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
+        $this->assertInstanceOf(\Doctrine\DBAL\Connection::class, $adapter);
     }
 
-    public function testConfigCanSerialize()
+    public function testConfigCanSerialize(): void
     {
         $cfg = new \Spot\Config();
-        $adapter = $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
+        $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
 
         $this->assertIsString(serialize($cfg));
     }
 
-    public function testConfigCanUnserialize()
+    public function testConfigCanUnserialize(): void
     {
         $cfg = new \Spot\Config();
-        $adapter = $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
+        $cfg->addConnection('test_mysql', 'mysql://test:password@localhost/test');
 
-        $this->assertInstanceOf('\Spot\Config', unserialize(serialize($cfg)));
+        $this->assertInstanceOf(\Spot\Config::class, unserialize(serialize($cfg)));
     }
 
-    public function testAddConnectionWithArray()
+    public function testAddConnectionWithArray(): void
     {
         $cfg = new \Spot\Config();
         $dbalArray = [
@@ -61,10 +61,10 @@ class Config extends \PHPUnit\Framework\TestCase
             'driver' => 'pdo_mysql',
         ];
         $adapter = $cfg->addConnection('test_array', $dbalArray);
-        $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
+        $this->assertInstanceOf(\Doctrine\DBAL\Connection::class, $adapter);
     }
 
-    public function testAddConnectionWithExistingDBALConnection()
+    public function testAddConnectionWithExistingDBALConnection(): void
     {
         $cfg = new \Spot\Config();
         $dbalArray = [
@@ -79,6 +79,6 @@ class Config extends \PHPUnit\Framework\TestCase
         $connection = \Doctrine\DBAL\DriverManager::getConnection($dbalArray, $config);
 
         $adapter = $cfg->addConnection('test_dbalconnection', $connection);
-        $this->assertInstanceOf('Doctrine\DBAL\Connection', $adapter);
+        $this->assertInstanceOf(\Doctrine\DBAL\Connection::class, $adapter);
     }
 }

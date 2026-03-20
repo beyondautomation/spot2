@@ -45,7 +45,11 @@ class HasOne extends RelationAbstract implements \ArrayAccess
 
     public function __set(string $key, mixed $val): void
     {
-        $this->execute()->$key = $val;
+        $entity = $this->execute();
+
+        if ($entity) {
+            $entity->$key = $val;
+        }
     }
 
     #[\Override]
@@ -58,11 +62,17 @@ class HasOne extends RelationAbstract implements \ArrayAccess
     public function execute(): mixed
     {
         if ($this->result === null) {
+            if ($this->identityValue() === null) {
+                $this->result = false;
+
+                return null;
+            }
+
             $collection    = $this->query()->execute();
             $this->result  = $collection !== false ? $collection->first() : false;
         }
 
-        return $this->result;
+        return $this->result === false ? null : $this->result;
     }
 
     public function entity(): mixed
@@ -101,7 +111,7 @@ class HasOne extends RelationAbstract implements \ArrayAccess
         }
 
         if ($relatedEntity instanceof EntityInterface && ($relatedEntity->isNew() || $relatedEntity->isModified())) {
-            $lastResult = $relatedMapper->save($relatedEntity, $options);
+            return $relatedMapper->save($relatedEntity, $options);
         }
 
         return $lastResult;
@@ -142,6 +152,11 @@ class HasOne extends RelationAbstract implements \ArrayAccess
     protected function buildQuery(): \Spot\Query
     {
         $foreignMapper = $this->mapper()->getMapper($this->entityName());
+
+        // When the local PK is NULL (unsaved entity) there is no related entity.
+        if ($this->identityValue() === null) {
+            return $foreignMapper->where(['id' => null]); // null FK — always-false condition
+        }
 
         return $foreignMapper->where([$this->foreignKey() => $this->identityValue()]);
     }

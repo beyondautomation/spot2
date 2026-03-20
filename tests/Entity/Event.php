@@ -18,8 +18,9 @@ class Event extends \Spot\Entity
     protected static ?string $table = 'test_events';
 
     // Use a custom mapper for this object
-    protected static string|false $mapper = 'SpotTest\Mapper\Event';
+    protected static string|false $mapper = \SpotTest\Mapper\Event::class;
 
+    #[\Override]
     public static function fields(): array
     {
         return [
@@ -44,22 +45,24 @@ class Event extends \Spot\Entity
         ];
     }
 
+    #[\Override]
     public static function relations(MapperInterface $mapper, EntityInterface $entity): array
     {
         return [
-            'search' => $mapper->hasOne($entity, 'SpotTest\Entity\Event\Search', 'event_id'),
-            'polymorphic_comments' => $mapper->hasMany($entity, 'SpotTest\Entity\PolymorphicComment', 'item_id')->where(['item_type' => 'event']),
+            'search' => $mapper->hasOne($entity, \SpotTest\Entity\Event\Search::class, 'event_id'),
+            'polymorphic_comments' => $mapper->hasMany($entity, \SpotTest\Entity\PolymorphicComment::class, 'item_id')->where(['item_type' => 'event']),
         ];
     }
 
+    #[\Override]
     public static function events(EventEmitter $eventEmitter): void
     {
-        $eventEmitter->on('beforeInsert', function ($entity, $mapper) {
+        $eventEmitter->on('beforeInsert', function ($entity, $mapper): void {
             $entity->token = uniqid();
         });
 
-        $eventEmitter->on('afterInsert', function ($entity, $mapper) {
-            $mapper = test_spot_mapper('SpotTest\Entity\Event\Search');
+        $eventEmitter->on('afterInsert', function ($entity, $mapper): void {
+            $mapper = test_spot_mapper(\SpotTest\Entity\Event\Search::class);
             $result = $mapper->create([
                 'event_id' => $entity->id,
                 'body'     => $entity->title . ' ' . $entity->description,

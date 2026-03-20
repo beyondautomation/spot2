@@ -15,6 +15,7 @@ class MultipleUniques extends \Spot\Entity
 {
     protected static ?string $table = 'test_multipleuniques';
 
+    #[\Override]
     public static function fields(): array
     {
         return [

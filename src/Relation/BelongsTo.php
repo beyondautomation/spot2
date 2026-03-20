@@ -45,7 +45,11 @@ class BelongsTo extends RelationAbstract implements \ArrayAccess
 
     public function __set(string $key, mixed $val): void
     {
-        $this->execute()->$key = $val;
+        $entity = $this->execute();
+
+        if ($entity) {
+            $entity->$key = $val;
+        }
     }
 
     #[\Override]
@@ -67,11 +71,21 @@ class BelongsTo extends RelationAbstract implements \ArrayAccess
     public function execute(): mixed
     {
         if ($this->result === null) {
+            // Null FK means there is no related entity — skip the query entirely
+            // and store false so we don't query again, but return null to callers
+            // so that truthiness checks ($entity->relation) work correctly.
+            if ($this->identityValue() === null) {
+                $this->result = false;
+
+                return null;
+            }
+
             $collection   = $this->query()->execute();
             $this->result = $collection !== false ? $collection->first() : false;
         }
 
-        return $this->result;
+        // false means loaded-but-empty (no related entity found)
+        return $this->result === false ? null : $this->result;
     }
 
     public function entity(): mixed
@@ -88,28 +102,27 @@ class BelongsTo extends RelationAbstract implements \ArrayAccess
         $lastResult    = 0;
         $relatedEntity = $entity->relation($relationName);
 
-        if ($relatedEntity instanceof EntityInterface) {
-            if ($relatedEntity->isNew() || $relatedEntity->isModified()) {
-                $relatedMapper = $this->mapper()->getMapper($this->entityName());
-                $lastResult    = $relatedMapper->save($relatedEntity, $options);
+        if ($relatedEntity instanceof EntityInterface && ($relatedEntity->isNew() || $relatedEntity->isModified())) {
+            $relatedMapper = $this->mapper()->getMapper($this->entityName());
+            $lastResult    = $relatedMapper->save($relatedEntity, $options);
 
-                if ($entity->get($this->localKey()) !== $relatedEntity->primaryKey()) {
-                    $relatedRelations = $entity->relations($relatedMapper, $relatedEntity);
+            if ($entity->get($this->localKey()) !== $relatedEntity->primaryKey()) {
+                $relatedRelations = $entity->relations($relatedMapper, $relatedEntity);
 
-                    foreach ($relatedRelations as $relatedRelation) {
-                        if ($relatedRelation instanceof HasOne && $relatedRelation->foreignKey() === $this->localKey()) {
-                            if ($relatedMapper->entityManager()->fields()[$relatedRelation->foreignKey()]['notnull']) {
-                                $lastResult = $relatedMapper->delete([$relatedRelation->foreignKey() => $entity->get($relatedRelation->foreignKey())]);
-                            } else {
-                                $relatedMapper->queryBuilder()->builder()
-                                    ->update($relatedMapper->table())
-                                    ->set($relatedRelation->foreignKey(), null) // @phpstan-ignore-line argument.type
-                                    ->where([$relatedRelation->foreignKey() => $entity->get($relatedRelation->foreignKey())]); // @phpstan-ignore-line argument.type
-                            }
+                foreach ($relatedRelations as $relatedRelation) {
+                    if ($relatedRelation instanceof HasOne && $relatedRelation->foreignKey() === $this->localKey()) {
+                        if ($relatedMapper->entityManager()->fields()[$relatedRelation->foreignKey()]['notnull']) {
+                            $lastResult = $relatedMapper->delete([$relatedRelation->foreignKey() => $entity->get($relatedRelation->foreignKey())]);
+                        } else {
+                            $relatedMapper->queryBuilder()->builder()
+                                ->update($relatedMapper->table())
+                                ->set($relatedRelation->foreignKey(), null) // @phpstan-ignore-line argument.type
+                                ->where([$relatedRelation->foreignKey() => $entity->get($relatedRelation->foreignKey())]); // @phpstan-ignore-line argument.type
                         }
                     }
-                    $entity->set($this->localKey(), $relatedEntity->primaryKey());
                 }
+
+                $entity->set($this->localKey(), $relatedEntity->primaryKey());
             }
         }
 
@@ -151,6 +164,13 @@ class BelongsTo extends RelationAbstract implements \ArrayAccess
     protected function buildQuery(): \Spot\Query
     {
         $foreignMapper = $this->mapper()->getMapper($this->entityName());
+
+        // When the local FK is NULL there is no related entity — skip the DB
+        // query and return an empty result set rather than WHERE id IS NULL,
+        // which could match unrelated rows.
+        if ($this->identityValue() === null) {
+            return $foreignMapper->where(['id' => null]); // null FK — always-false condition
+        }
 
         return $foreignMapper->where([$this->foreignKey() => $this->identityValue()]);
     }

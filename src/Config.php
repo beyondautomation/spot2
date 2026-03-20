@@ -21,11 +21,6 @@ class Config
         return [];
     }
 
-    /** @param array<mixed> $serialized */
-    public function __unserialize(array $serialized): void
-    {
-    }
-
     /**
      * Taken from PHPUnit 3.4:
      *
@@ -110,19 +105,19 @@ class Config
         // $str => phptype(dbsyntax)
         if (preg_match('|^(.+?)\((.*?)\)$|', $str, $arr)) {
             $parsed['adapter']  = $arr[1];
-            $parsed['dbsyntax'] = !$arr[2] ? $arr[1] : $arr[2];
+            $parsed['dbsyntax'] = $arr[2] === '' || $arr[2] === '0' ? $arr[1] : $arr[2];
         } else {
             $parsed['adapter']  = $str;
             $parsed['dbsyntax'] = $str;
         }
 
-        if (empty($dsn)) {
+        if (in_array($dsn, [null, '', '0'], true)) {
             return $parsed;
         }
 
         // Get (if found): user and password
         // $dsn => user:password@protocol+host/database
-        if (($at = strrpos((string) $dsn, '@')) !== false) {
+        if (($at = strrpos($dsn, '@')) !== false) {
             $str = substr($dsn, 0, $at);
             $dsn = substr($dsn, $at + 1);
 
@@ -142,11 +137,13 @@ class Config
             $dsn        = $match[3];
         } else {
             // $dsn => protocol+host/database (old format)
-            if (strpos($dsn, '+') !== false) {
+            $proto = '';
+
+            if (str_contains($dsn, '+')) {
                 [$proto, $dsn] = explode('+', $dsn, 2);
             }
 
-            if (strpos($dsn, '/') !== false) {
+            if (str_contains($dsn, '/')) {
                 [$proto_opts, $dsn] = explode('/', $dsn, 2);
             } else {
                 $proto_opts = $dsn;
@@ -155,11 +152,11 @@ class Config
         }
 
         // process the different protocol options
-        $parsed['protocol'] = (!empty($proto)) ? $proto : 'tcp';
+        $parsed['protocol'] = ($proto === '' || $proto === '0') ? 'tcp' : $proto;
         $proto_opts         = rawurldecode((string) $proto_opts);
 
         if ($parsed['protocol'] === 'tcp') {
-            if (strpos($proto_opts, ':') !== false) {
+            if (str_contains($proto_opts, ':')) {
                 [$parsed['host'], $parsed['port']] = explode(':', $proto_opts);
             } else {
                 $parsed['host'] = $proto_opts;
@@ -179,7 +176,7 @@ class Config
                 $parsed['dbname'] = rawurldecode(substr($dsn, 0, $pos));
                 $dsn              = substr($dsn, $pos + 1);
 
-                if (strpos($dsn, '&') !== false) {
+                if (str_contains($dsn, '&')) {
                     $opts = explode('&', $dsn);
                 } else { // database?param1=value1
                     $opts = [$dsn];
@@ -250,7 +247,7 @@ class Config
             if (is_array($dsn)) {
                 $connectionParams = $dsn;
             } else {
-                $connectionParams = $this->parseDsn($dsn);
+                $connectionParams = static::parseDsn($dsn);
 
                 if ($connectionParams === false) {
                     throw new Exception('Unable to parse given DSN string');
@@ -262,7 +259,7 @@ class Config
         }
 
         // Set as default connection?
-        if ($default === true || $this->_defaultConnection === null) {
+        if ($default || $this->_defaultConnection === null) {
             $this->_defaultConnection = $name;
         }
 

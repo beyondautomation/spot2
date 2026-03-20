@@ -19,21 +19,18 @@ use Spot\Mapper;
  */
 class HasManyThrough extends RelationAbstract implements \Countable, \IteratorAggregate, \ArrayAccess
 {
-    protected string $throughEntityName;
-
     protected ?Collection $throughCollection = null;
 
     public function __construct(
         Mapper $mapper,
         string $entityName,
-        string $throughEntityName,
+        protected string $throughEntityName,
         string $foreignKey,
         string $localKey,
         mixed $identityValue,
     ) {
         $this->mapper            = $mapper;
         $this->entityName        = $entityName;
-        $this->throughEntityName = $throughEntityName;
         $this->foreignKey        = $foreignKey;
         $this->localKey          = $localKey;
         $this->identityValue     = $identityValue;
@@ -67,13 +64,13 @@ class HasManyThrough extends RelationAbstract implements \Countable, \IteratorAg
 
         $entityRelations = [];
 
-        if ($this->throughCollection !== null) {
+        if ($this->throughCollection instanceof \Spot\Entity\Collection) {
             foreach ($this->throughCollection as $throughEntity) {
                 $throughForeignKey = $throughEntity->$relationForeignKey;
                 $throughLocalKey   = $throughEntity->$relationLocalKey;
 
                 foreach ($collectionRelations as $relatedEntity) {
-                    if ($relatedEntity->$relationRelatedForeignKey == $throughForeignKey) {
+                    if ((string) $relatedEntity->$relationRelatedForeignKey === (string) $throughForeignKey) {
                         $entityRelations[$throughLocalKey][] = $relatedEntity;
                     }
                 }
@@ -114,9 +111,10 @@ class HasManyThrough extends RelationAbstract implements \Countable, \IteratorAg
                 if ($related->isNew() || $related->isModified()) {
                     $lastResult = $relatedMapper->save($related, $options);
                 }
+
                 $relatedIds[] = $related->primaryKey();
 
-                if (!count($throughMapper->where([$this->localKey() => $entity->primaryKey(), $this->foreignKey() => $related->primaryKey()]))) {
+                if (count($throughMapper->where([$this->localKey() => $entity->primaryKey(), $this->foreignKey() => $related->primaryKey()])) === 0) {
                     $lastResult = $throughMapper->create([$this->localKey() => $entity->primaryKey(), $this->foreignKey() => $related->primaryKey()]);
                 }
             }
@@ -127,7 +125,7 @@ class HasManyThrough extends RelationAbstract implements \Countable, \IteratorAg
                 }
             }
 
-            if (!empty($deletedIds)) {
+            if ($deletedIds !== []) {
                 $throughMapper->delete([$this->localKey() => $entity->primaryKey(), $this->foreignKey() . ' :in' => $deletedIds]);
             }
         } elseif ($relatedEntities === false) {

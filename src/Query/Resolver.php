@@ -143,6 +143,83 @@ class Resolver
                         continue;
                     }
 
+                    // Never downgrade text column types.
+                    // MySQL text hierarchy: TINYTEXT(255B) < TEXT(64KB) < MEDIUMTEXT(16MB) < LONGTEXT(4GB)
+                    // If the DB already has a larger text type than what the entity specifies,
+                    // keep the larger type but still apply other changes (nullability, default).
+                    // This protects columns that were manually widened to hold data larger
+                    // than the entity definition specifies.
+                    if (preg_match('/^\s*ALTER\s+TABLE\s+(`?\S+`?)\s+/i', $sql, $tableMatch)
+                        && preg_match('/\bCHANGE\b/i', $sql)) {
+                        $textRank    = ['tinytext' => 1, 'text' => 2, 'mediumtext' => 3, 'longtext' => 4];
+                        $tableNameRaw = trim($tableMatch[1], '`');
+
+                        // Query information_schema directly — DBAL maps all text subtypes
+                        // (MEDIUMTEXT, LONGTEXT) to its own TextType, losing the distinction.
+                        // information_schema.COLUMNS.COLUMN_TYPE gives us the exact MySQL type.
+                        try {
+                            $dbName = $connection->getDatabase();
+                            $rows   = $connection->fetchAllAssociative(
+                                'SELECT COLUMN_NAME, LOWER(COLUMN_TYPE) AS column_type'
+                                . ' FROM information_schema.COLUMNS'
+                                . ' WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+                                [$dbName, $tableNameRaw],
+                            );
+                            $columnTypes = [];
+
+                            foreach ($rows as $row) {
+                                // column_type may include modifiers like 'mediumtext' — extract base type
+                                $baseType = preg_replace('/\s+.*/', '', (string) $row['column_type']);
+                                $columnTypes[$row['COLUMN_NAME'] ?? $row['column_name']] = $baseType;
+                            }
+                        } catch (\Throwable) {
+                            $columnTypes = [];
+                        }
+
+                        if ($columnTypes !== []) {
+                            preg_match('/^\s*(ALTER\s+TABLE\s+`?\S+`?)\s+/i', $sql, $prefixMatch);
+                            $alterPrefix = $prefixMatch[1] ?? null;
+                            $alterRest   = ($alterPrefix !== null && isset($prefixMatch[0])) ? substr($sql, strlen($prefixMatch[0])) : null;
+
+                            if ($alterPrefix !== null && $alterRest !== null) {
+                                $clauses   = preg_split('/,\s*(?=[A-Z])/i', $alterRest) ?: [$alterRest];
+                                $rewritten = [];
+
+                                foreach ($clauses as $clause) {
+                                    $clause = trim($clause);
+
+                                    // Match CHANGE oldcol `newcol` TEXTTYPE [rest]
+                                    if (preg_match(
+                                        '/^CHANGE\s+(\S+)\s+(`?\S+`?)\s+((TINY|MEDIUM|LONG)?TEXT)(\s.*|$)/i',
+                                        $clause,
+                                        $cm,
+                                    )) {
+                                        $colName        = trim($cm[2], '`');
+                                        $targetType     = strtolower($cm[3]);
+                                        $restClause     = $cm[5];
+                                        $currentColType = $columnTypes[$colName] ?? $columnTypes[strtolower($colName)] ?? null;
+
+                                        if ($currentColType !== null
+                                            && isset($textRank[$currentColType], $textRank[$targetType])
+                                            && $textRank[$currentColType] > $textRank[$targetType]
+                                        ) {
+                                            // Downgrade detected: keep current larger type,
+                                            // but apply nullability/default changes.
+                                            $rewritten[] = 'CHANGE ' . $cm[1] . ' ' . $cm[2]
+                                                . ' ' . strtoupper($currentColType) . $restClause;
+                                        } else {
+                                            $rewritten[] = $clause;
+                                        }
+                                    } else {
+                                        $rewritten[] = $clause;
+                                    }
+                                }
+
+                                $sql = $alterPrefix . ' ' . implode(', ', $rewritten);
+                            }
+                        }
+                    }
+
                     // For ALTER TABLE statements, strip individual DROP clauses while
                     // preserving any ADD / MODIFY / CHANGE clauses in the same statement.
                     if (preg_match('/^\s*ALTER\s+TABLE\s+/i', $sql) && preg_match('/\bDROP\b/i', $sql)) {
@@ -216,6 +293,10 @@ class Resolver
         // 'array', 'simple_array', 'object' were removed in DBAL4.
         // 'encrypted' is an app-defined type backed by TEXT.
         // 'uuid' maps to 'guid' (DBAL4's native UUID type) if 'uuid' is not registered.
+        // Map Spot-specific / legacy types to their DBAL equivalents.
+        // uuid/guid handled separately; array/object/simple_array/encrypted
+        // are all backed by a text column — their exact MySQL subtype is
+        // determined below by the length field.
         $legacyTypeMap = [
             'array'        => 'text',
             'simple_array' => 'text',
@@ -223,10 +304,48 @@ class Resolver
             'encrypted'    => 'text',
             'uuid'         => \Doctrine\DBAL\Types\Type::hasType('uuid') ? 'uuid' : 'guid',
         ];
+        // Types that use text-family columns (TEXT/MEDIUMTEXT/LONGTEXT).
+        // The exact MySQL subtype is chosen by textSubtype() based on length.
+        $textFamilyTypes = ['text', 'array', 'simple_array', 'object', 'encrypted'];
 
         foreach ($fields as $field) {
-            $fieldType  = $legacyTypeMap[$field['type']] ?? $field['type'];
+            $originalFieldType = $field['type'];
+            $fieldType  = $legacyTypeMap[$originalFieldType] ?? $originalFieldType;
             $columnName = $field['column'];
+
+            // For text-family types, choose the correct MySQL subtype based on
+            // the entity's length field, mirroring the old Spot2/DBAL2 behaviour:
+            //   length <= 255          -> TINYTEXT  (rarely used)
+            //   length <= 65535        -> TEXT      (default, 64KB)
+            //   length <= 16777215     -> MEDIUMTEXT (16MB)
+            //   length >  16777215     -> LONGTEXT  (4GB)
+            //   no length specified    -> TEXT
+            // We use columnDefinition to bypass DBAL4's TextType which always
+            // generates LONGTEXT on MySQL regardless of the length field.
+            if (in_array($originalFieldType, $textFamilyTypes, true)
+                && !isset($field['columnDefinition'])) {
+                $textLength = $field['length'] ?? 0;
+
+                if ($textLength > 0 && $textLength <= 255) {
+                    $textSubtype = 'TINYTEXT';
+                } elseif ($textLength > 0 && $textLength <= 65535) {
+                    $textSubtype = 'TEXT';
+                } elseif ($textLength > 0 && $textLength <= 16777215) {
+                    $textSubtype = 'MEDIUMTEXT';
+                } elseif ($textLength > 16777215) {
+                    $textSubtype = 'LONGTEXT';
+                } else {
+                    $textSubtype = 'TEXT'; // default: no length specified
+                }
+
+                // When columnDefinition is used, DBAL ignores notnull/default options.
+                // We must embed NOT NULL and DEFAULT directly in the definition string.
+                $notNull = ($field['notnull'] ?? ($field['required'] ?? false)) === true;
+                $colDefault = $field['default'] ?? null;
+                $field['columnDefinition'] = $textSubtype
+                    . ($notNull ? ' NOT NULL' : ' DEFAULT NULL')
+                    . ($colDefault !== null ? ' DEFAULT ' . (is_string($colDefault) ? "'" . addslashes($colDefault) . "'" : $colDefault) : '');
+            }
 
             // Map Spot's 'value' (field default) to DBAL's 'default'.
             // Only scalar values can be SQL column defaults; objects/arrays are PHP-level only.
@@ -248,9 +367,39 @@ class Resolver
                 $length = $field['length'] ?? null;
 
                 if ($length === null || $length > 16383) {
+                    // Promote to the correct MySQL text subtype based on length.
+                    // string with length > 16383 cannot be VARCHAR with utf8mb4.
+                    // Use 'text' as the DBAL type — columnDefinition overrides the
+                    // actual MySQL type, but DBAL needs a valid base type for comparisons.
                     $fieldType = 'text';
-                    unset($field['length']); // TEXT columns do not accept a length option
+                    $textLength = (int) ($length ?? 0);
+
+                    if ($textLength > 0 && $textLength <= 255) {
+                        $textSubtype = 'TINYTEXT';
+                    } elseif ($textLength > 0 && $textLength <= 65535) {
+                        $textSubtype = 'TEXT';
+                    } elseif ($textLength > 0 && $textLength <= 16777215) {
+                        $textSubtype = 'MEDIUMTEXT';
+                    } elseif ($textLength > 16777215) {
+                        $textSubtype = 'LONGTEXT';
+                    } else {
+                        $textSubtype = 'TEXT'; // no length: default to TEXT
+                    }
+
+                    $notNull = ($field['notnull'] ?? ($field['required'] ?? false)) === true;
+                    $colDefault = $field['default'] ?? null;
+                    $field['columnDefinition'] = $textSubtype
+                        . ($notNull ? ' NOT NULL' : ' DEFAULT NULL')
+                        . ($colDefault !== null ? ' DEFAULT ' . (is_string($colDefault) ? "'" . addslashes($colDefault) . "'" : $colDefault) : '');
+                    unset($field['length']); // text types do not accept a length option
                 }
+            }
+
+            // TEXT/MEDIUMTEXT/LONGTEXT columns never accept a length parameter.
+            // If an entity explicitly defines 'type' => 'text' with a length,
+            // strip the length to prevent DBAL from generating spurious CHANGE statements.
+            if (in_array($fieldType, ['text', 'mediumtext', 'longtext', 'tinytext'], true)) {
+                unset($field['length']);
             }
 
             // DBAL4 Column rejects unknown options. Keep only recognised DBAL column options.

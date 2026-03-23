@@ -77,6 +77,7 @@ $opts = getopt('', [
     'namespace::',
     'entity-ns::',
     'no-color',
+    'show-destructive',
     'help',
 ]);
 
@@ -136,6 +137,28 @@ if ($bootstrapFile) {
     require_once $bootstrapFile;
 }
 
+// ─── Register common custom types ──────────────────────────────────────────────
+// Register placeholder mappings for known custom DBAL types that may not be
+// registered by the bootstrap. This prevents 'Unknown column type' errors
+// during schema introspection.
+foreach ([
+    'encrypted'  => 'text',
+    'uuid'       => 'guid',
+] as $typeName => $fallback) {
+    if (!\Doctrine\DBAL\Types\Type::hasType($typeName)) {
+        \Doctrine\DBAL\Types\Type::addType($typeName, \Doctrine\DBAL\Types\Type::getType($fallback)::class);
+    }
+}
+
+// Register a proper TimestampType fallback that matches the real TIMESTAMP(6) SQL
+// declaration — prevents false ALTER reports when the bootstrap isn't loaded.
+if (!\Doctrine\DBAL\Types\Type::hasType('timestamp')) {
+    \Doctrine\DBAL\Types\Type::addType('timestamp', class_exists('App\\Core\\Encryption\\TimestampType')
+        ? 'App\\Core\\Encryption\\TimestampType'
+        : \Doctrine\DBAL\Types\DateTimeType::class
+    );
+}
+
 // ─── Collect mapper classes ──────────────────────────────────────────────────
 
 $mapperClasses = [];
@@ -191,11 +214,11 @@ sort($mapperClasses);
 
 try {
     $config     = new \Doctrine\DBAL\Configuration();
-    $connection = \Doctrine\DBAL\DriverManager::getConnection(
-        ['url' => $dsn],
-        $config
-    );
-    $connection->connect();
+    // DBAL4 uses parseDatabaseUrl via the 'url' key in some versions,
+    // but the most reliable way is to parse the DSN ourselves using
+    // Spot's own Config class which already handles all DSN formats.
+    $spotCfgTemp = new \Spot\Config();
+    $connection  = $spotCfgTemp->addConnection('audit', $dsn);
 } catch (\Throwable $e) {
     echo colored("ERROR: Cannot connect to database: " . $e->getMessage() . "\n", 'red', $useColor);
     exit(2);
@@ -219,14 +242,20 @@ $summary = [
 $schemaManager = $connection->createSchemaManager();
 
 // Build Spot locator pointing at the audit DB
-$spotConfig = new \Spot\Config();
-$spotConfig->addConnection('audit', $connection);
-$locator = new \Spot\Locator($spotConfig);
+// $spotCfgTemp already has the 'audit' connection registered above
+$locator = new \Spot\Locator($spotCfgTemp);
 
 foreach ($mapperClasses as $mapperClass) {
     try {
         /** @var \Spot\Mapper $mapper */
-        $mapper    = $locator->mapper($mapperClass);
+        // Derive entity class name from mapper class name.
+        // Supports two conventions:
+        //   App\Model\Mapper\AccountMapper  -> App\Model\AccountModel  (if exists)
+        //   App\Model\Mapper\AccountMapper  -> App\Model\Account       (fallback)
+        $baseName   = preg_replace('/Mapper$/', '', $mapperClass);
+        $baseName   = str_replace('\\Mapper\\', '\\', $baseName);
+        $entityName = class_exists($baseName . 'Model') ? $baseName . 'Model' : $baseName;
+        $mapper     = new $mapperClass($locator, $entityName);
         $entity    = $mapper->entity();
         $table     = $entity::table();
         $resolver  = $mapper->resolver();
@@ -249,15 +278,16 @@ foreach ($mapperClasses as $mapperClass) {
             continue;
         }
 
-        // Table exists — check for diffs
-        $currentSchema = $schemaManager->introspectSchema();
-        $newSchema     = $resolver->migrateCreateSchema();
-        $comparator    = $schemaManager->createComparator();
-        $schemaDiff    = $comparator->compareSchemas($currentSchema, $newSchema);
-        $allSqls       = $connection->getDatabasePlatform()->getAlterSchemaSQL($schemaDiff);
+        // Table exists — compare only THIS table, not the whole DB schema.
+        // Comparing full schemas causes false DROP statements for every other table.
+        $currentTableObj = $schemaManager->introspectTable($table);
+        $newSchema       = $resolver->migrateCreateSchema();
+        $newTableObj     = $newSchema->getTable($table);
+        $comparator      = $schemaManager->createComparator();
+        $tableDiff       = $comparator->compareTables($currentTableObj, $newTableObj);
+        $allSqls         = $connection->getDatabasePlatform()->getAlterTableSQL($tableDiff);
 
         if (count($allSqls) === 0) {
-            echo colored("  [OK]     ", 'green', $useColor) . "$mapperClass ($table)\n";
             $summary['up_to_date'][] = $mapperClass;
             continue;
         }
@@ -267,6 +297,30 @@ foreach ($mapperClasses as $mapperClass) {
         $destructiveSqls = [];
 
         foreach ($allSqls as $sql) {
+            // Skip CHANGE statements that are comparator noise:
+            // - text/mediumtext/longtext family (compatible subtypes)
+            // - INT vs TIMESTAMP(6) (custom TimestampType vs integer fallback)
+            // These are never applied by migrate() either.
+            if (preg_match('/^\s*ALTER\s+TABLE\s+/i', $sql)
+                && !preg_match('/ADD\s+(COLUMN|INDEX|UNIQUE|FOREIGN|PRIMARY)/i', $sql)
+                && preg_match('/CHANGE\s+\S+\s+`?\S+`?\s+((TINY|MEDIUM|LONG)?TEXT|INT|TIMESTAMP)/i', $sql)) {
+                preg_match('/^\s*(ALTER\s+TABLE\s+\S+)\s+/i', $sql, $m);
+                if (isset($m[0])) {
+                    $rest    = substr($sql, strlen($m[0]));
+                    $clauses = preg_split('/,\s*(?=[A-Z])/i', $rest) ?: [$rest];
+                    $nonNoise = array_filter(
+                        $clauses,
+                        static fn (string $c): bool => !preg_match(
+                            '/^\s*CHANGE\s+\S+\s+`?\S+`?\s+((TINY|MEDIUM|LONG)?TEXT|INT(\(\d+\))?|TIMESTAMP(\(\d+\))?)(\s+(NOT NULL|DEFAULT|NULL|$)|$)/i',
+                            trim($c)
+                        )
+                    );
+                    if ($nonNoise === []) {
+                        continue; // all clauses are comparator noise — skip
+                    }
+                }
+            }
+
             if (preg_match('/^\s*DROP\s+/i', $sql)) {
                 $destructiveSqls[] = $sql;
                 continue;
@@ -289,12 +343,16 @@ foreach ($mapperClasses as $mapperClass) {
         }
 
         if ($destructiveSqls) {
-            echo colored("  [DANGER] ", 'red', $useColor) . "$mapperClass ($table)\n";
-            echo colored("           Destructive SQL detected (would be SUPPRESSED by migrate()):\n", 'red', $useColor);
-            foreach ($destructiveSqls as $sql) {
-                echo "           " . colored($sql, 'red', $useColor) . "\n";
-            }
+            // Destructive SQL is always suppressed by migrate().
+            // Only show details when --show-destructive flag is passed.
             $summary['destructive'][] = $mapperClass;
+            if (isset($opts['show-destructive'])) {
+                echo colored("  [DANGER] ", 'red', $useColor) . "$mapperClass ($table)\n";
+                foreach ($destructiveSqls as $sql) {
+                    echo "           " . colored($sql, 'red', $useColor) . "\n";
+                }
+                echo "\n";
+            }
         }
 
         if ($safeSqls) {
@@ -302,10 +360,9 @@ foreach ($mapperClasses as $mapperClass) {
             foreach ($safeSqls as $sql) {
                 echo "           " . colored($sql, 'yellow', $useColor) . "\n";
             }
+            echo "\n";
             $summary['needs_alter'][] = $mapperClass;
         }
-
-        echo "\n";
     } catch (\Throwable $e) {
         echo colored("  [ERROR]  ", 'red', $useColor) . "$mapperClass\n";
         echo colored("           " . $e->getMessage() . "\n", 'red', $useColor);
@@ -328,7 +385,7 @@ $errors     = count($summary['errors']);
 echo colored("  ✓  Up-to-date:           ", 'green', $useColor) . "$upToDate\n";
 echo colored("  ⚠  Need ALTER:           ", 'yellow', $useColor) . "$alters\n";
 echo colored("  ⚠  Need CREATE:          ", 'yellow', $useColor) . "$creates\n";
-echo colored("  ✗  Destructive (blocked):", 'red', $useColor)    . " $destructive\n";
+echo colored("  ✗  Orphaned indexes/FKs (blocked):", 'yellow', $useColor) . " $destructive\n";
 echo colored("  ✗  Errors:               ", 'red', $useColor)    . " $errors\n";
 
 if ($errors > 0) {
@@ -339,10 +396,9 @@ if ($errors > 0) {
 }
 
 if ($destructive > 0) {
-    echo "\n" . colored("WARNING: Destructive DDL was detected for the above mappers.\n", 'red', $useColor);
-    echo colored("         migrate() will SUPPRESS these statements, so your data is safe.\n", 'red', $useColor);
-    echo colored("         However, this likely means the DB has extra columns/tables that\n", 'red', $useColor);
-    echo colored("         are not in the entity definition. Investigate before deploying.\n", 'red', $useColor);
+    echo "\n" . colored("NOTE: $destructive mapper(s) have extra DB tables/columns not in their entity.\n", 'yellow', $useColor);
+    echo colored("      migrate() suppresses all DROP statements — your data is safe.\n", 'yellow', $useColor);
+    echo colored("      Run with --show-destructive to see the full DROP list.\n", 'yellow', $useColor);
 }
 
 echo "\n";

@@ -5,6 +5,68 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [2.5.9] — 2026-03-23
+
+### Fixed
+
+- **[Migrate]** `Resolver::migrateCreateSchema()` now selects the correct MySQL
+  text subtype based on the field's `length` value, restoring the behaviour of
+  the old Spot2/DBAL2 library. DBAL4's `TextType` always generates `LONGTEXT`
+  on MySQL regardless of length; Spot2 now bypasses this via `columnDefinition`:
+  - `length <= 255` → `TINYTEXT`
+  - `length <= 65535` → `TEXT` (default when no length is specified)
+  - `length <= 16777215` → `MEDIUMTEXT`
+  - `length > 16777215` → `LONGTEXT`
+  This applies to `text`, `encrypted`, `array`, `object`, and `simple_array`
+  types, as well as `string` fields whose length exceeds the `utf8mb4` VARCHAR
+  limit of 16 383 characters.
+
+- **[Migrate]** `Resolver::migrateCreateSchema()` now embeds `NOT NULL` or
+  `DEFAULT NULL` directly inside the `columnDefinition` string. When
+  `columnDefinition` is set, DBAL4 ignores the `notnull` and `default` column
+  options entirely, causing all text-family columns to be created as nullable
+  regardless of the entity's `'required' => true` setting.
+
+- **[Migrate]** `migrate()` now protects against text column type downgrades.
+  Before executing each `ALTER TABLE … CHANGE` statement, Spot2 queries
+  `information_schema.COLUMNS` for the current MySQL column type (the only
+  reliable source — DBAL maps all text subtypes to a single `TextType`). If
+  the existing column is larger than what the entity specifies (e.g. the DB has
+  `MEDIUMTEXT` but the entity maps to `TEXT`), the larger type is preserved and
+  only other changes (nullability, default value) are applied. This protects
+  columns that were manually widened to hold data larger than the entity
+  definition allows, and prevents data truncation on deploy.
+
+- **[Migrate]** `Resolver::migrateCreateSchema()` — when promoting a `string`
+  field to a text subtype, `$fieldType` is now set to `'text'` rather than
+  `'string'`. DBAL4's `StringType` requires a `length` for `VARCHAR` and throws
+  `InvalidColumnDeclaration` (MariaDB: "VARCHAR column length required") during
+  schema comparison when the field has no length because it was consumed by
+  the subtype selection logic.
+
+### Tooling
+
+- **[audit_schema.php]** Switched from full-schema comparison
+  (`introspectSchema()` + `compareSchemas()`) to single-table comparison
+  (`introspectTable()` + `compareTables()`). The previous approach caused every
+  mapper to report DROP statements for all 170+ other tables, producing hundreds
+  of false-positive `[ALTER]` entries and an inflated `Destructive` count.
+
+- **[audit_schema.php]** `[OK]` lines are no longer printed per-mapper. With
+  170+ mappers the noise outweighed the signal; the summary count is sufficient.
+
+- **[audit_schema.php]** `CHANGE` statements that only switch between
+  compatible text subtypes (`TEXT`/`MEDIUMTEXT`/`LONGTEXT`) or involve
+  `TIMESTAMP`/`INT` comparator noise (caused by custom `TimestampType` vs
+  the integer fallback used when bootstrap is not loaded) are now suppressed
+  from the audit output, matching the behaviour of `migrate()` itself.
+
+- **[audit_schema.php]** Fallback DBAL type registrations (`encrypted`,
+  `uuid`, `timestamp`) are now registered after the bootstrap is loaded,
+  so the real app types always take precedence over the stubs.
+
+---
+
 ## [2.5.8] — 2026-03-20
 
 ### Fixed

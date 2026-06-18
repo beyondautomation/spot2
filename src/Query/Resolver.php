@@ -688,7 +688,10 @@ class Resolver
             } elseif ($fieldInfo['notnull']) {
                 $onDelete = 'CASCADE';
             } else {
-                $onDelete = 'SET NULL';
+                // Default to RESTRICT for nullable FK columns.
+                // SET NULL requires the referenced column to also be nullable,
+                // which is not guaranteed (e.g. referencing a primary key).
+                $onDelete = 'RESTRICT';
             }
 
             $fieldAliasMappings = $this->mapper->entityManager()->fieldAliasMappings();

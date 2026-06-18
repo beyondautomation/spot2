@@ -22,6 +22,8 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      */
     private const string RELATION_NULL = '__SPOT_RELATION_NULL__';
 
+    private const string RELATION_CLEAR_ALL = '__SPOT_RELATION_CLEAR_ALL__';
+
     /** @var string|null Table name for this entity. */
     protected static ?string $table = null;
 
@@ -92,13 +94,10 @@ abstract class Entity implements EntityInterface, \JsonSerializable
      */
     public function __destruct()
     {
-        $entityName = static::class;
-
-        if (isset(self::$relationFields[$entityName])) {
-            foreach (self::$relationFields[$entityName] as $relation) {
-                $this->relation($relation, false);
-            }
-        }
+        // Remove this entity's entire bucket from the process-lifetime relation
+        // store in one call, covering every storage path (set / empty-collection /
+        // setNull sentinel) so the unique _objectId key cannot leak.
+        $this->relation(self::RELATION_CLEAR_ALL, false);
     }
 
     /**
@@ -533,6 +532,12 @@ abstract class Entity implements EntityInterface, \JsonSerializable
         // with a var_dump() of the entity.
         static $relations = [];
         $objectId = $this->_objectId;
+
+        if ($relationName === self::RELATION_CLEAR_ALL) {
+            unset($relations[$objectId]);
+
+            return null;
+        }
 
         if ($relationObj === null && !$setNull) {
             // GET — return stored value, translating sentinel back to null

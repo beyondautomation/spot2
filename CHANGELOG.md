@@ -5,6 +5,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [2.5.10] — 2026-06-18
+
+### Fixed
+
+- **[Entity]** Memory leak in `Entity::__destruct()` where the entity's
+  `_objectId` bucket in the process-lifetime relation store was never removed,
+  leaking ~550 bytes per hydrated entity (confirmed at 552.6 bytes/entity in a
+  2 000-entity regression test). The previous destructor only unset the inner
+  relation entries registered in `$relationFields`, leaving the outer
+  `$relations[$objectId]` bucket behind, and never touched relations stored via
+  the `setNull` sentinel. The destructor now drops the entire bucket in one call
+  via a `RELATION_CLEAR_ALL` sentinel, covering every storage path
+  (set / empty-collection / `setNull`). Relation storage behaviour is otherwise
+  unchanged.
+
+### Changed
+
+- **[Dependencies]** Bumped `require` constraints to the latest releases:
+  `doctrine/dbal` `^4.4.3`, `sabre/event` `^6.1.0`, `vlucas/valitron` `^1.4.11`.
+
+---
+
 ## [2.5.9] — 2026-03-23
 
 ### Fixed
